@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Details</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+</head>
+<body>
+  <!-- Navbar -->
+  <div id="navbar-placeholder"></div>
+
+  <!-- Event Details -->
+  <div class="container py-5">
+    <div class="card shadow rounded p-4">
+      <h1 id="event-title" class="mb-3"></h1>
+      <p id="event-description"></p>
+      <p><strong>Club:</strong> <span id="event-club-name"></span></p>
+      <p><strong>Created by:</strong> <span id="event-owner">Unknown</span></p>
+      <p><strong>Privacy:</strong> <span id="event-privacy"></span></p>
+
+      <div class="mt-4 d-flex justify-content-between">
+        <a href="dashboard.html" class="btn btn-secondary">Go Back</a>
+        <a href="#" id="edit-event-btn" class="btn btn-primary d-none">Edit Event</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/scripts.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const encId = params.get('id');
+
+      if (!encId) {
+        alert("Missing event ID.");
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const password = localStorage.getItem('password');
+
+      try {
+        const res = await fetch("http://localhost:3001/clubs/1/events/view/${encId}", {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || 'Failed to load event.');
+          return;
+        }
+
+        document.getElementById('event-title').textContent = data.title;
+        document.getElementById('event-description').textContent = data.description;
+        document.getElementById('event-club-name').textContent = `Club ID: ${data.club_id}`;
+        document.getElementById('event-privacy').textContent = data.private ? 'Private' : 'Public';
+
+        if (password && password.endsWith('t')) {
+          const editBtn = document.getElementById('edit-event-btn');
+          editBtn.classList.remove('d-none');
+          editBtn.href = `edit-event.html?id=${encId}`;
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Something went wrong while fetching event data.");
+      }
+    });
+  </script>
+<div id="navbar-container"></div>
+</body>
+</html>

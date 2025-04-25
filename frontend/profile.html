@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profile | ClubConnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="css/bootstrap.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
+  <a href="index.html" class="navbar-brand p-0">
+    <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+    <span class="fa fa-bars"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarCollapse">
+    <ul id="navbarLinks" class="navbar-nav ms-auto py-0"></ul>
+  </div>
+</nav>
+
+<!-- Profile Section -->
+<div class="container mt-5">
+  <h2>My Profile</h2>
+  <div id="not-logged-in" class="alert alert-warning d-none">You are not logged in.</div>
+
+  <div id="profile-info" class="d-none">
+    <p><strong>Username:</strong> <span id="profile-username"></span></p>
+    <p><strong>Password:</strong> <span id="profile-password"></span></p>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="scripts.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    buildNavbar();
+
+    const token = localStorage.getItem("token");
+    const password = localStorage.getItem("password");
+
+    if (!token) {
+      document.getElementById("not-logged-in").classList.remove("d-none");
+    } else {
+      document.getElementById("profile-info").classList.remove("d-none");
+
+      fetch("http://localhost:3001/profile", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("profile-username").textContent = data.username || "Unknown";
+        document.getElementById("profile-password").textContent = password || "(not stored)";
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("profile-username").textContent = "Error";
+        document.getElementById("profile-password").textContent = "Error";
+      });
+    }
+  });
+</script>
+
+</body>
+</html>

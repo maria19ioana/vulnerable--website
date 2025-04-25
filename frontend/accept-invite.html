@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Accept Invite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ✅ Static Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
+  <a href="index.html" class="navbar-brand p-0">
+    <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+    <span class="fa fa-bars"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarCollapse">
+    <ul id="navbarLinks" class="navbar-nav ms-auto py-0">
+      <!-- Dynamic links will go here -->
+    </ul>
+  </div>
+</nav>
+<!-- End Navbar -->
+
+<div class="container mt-5">
+  <h1>Join a Club via Invite</h1>
+
+  <div class="mb-3">
+    <label for="token" class="form-label">Invite Token</label>
+    <input type="text" class="form-control" id="token" placeholder="Paste token or use ?token=... in URL" />
+  </div>
+
+  <button class="btn btn-primary mb-3" id="acceptBtn">Accept Invite</button>
+
+  <div id="result" class="mt-4"></div>
+</div>
+
+<!-- JavaScript -->
+<script>
+  const tokenInput = document.getElementById('token');
+  const result = document.getElementById('result');
+  const acceptBtn = document.getElementById('acceptBtn');
+
+  // Autofill from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('token')) {
+    tokenInput.value = urlParams.get('token');
+  }
+
+  acceptBtn.addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+
+    if (!token) {
+      result.innerHTML = `<div class="alert alert-warning">Please provide a token.</div>`;
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3001/accept-invite?token=${encodeURIComponent(token)}");
+      const data = await response.json();
+
+      if (response.ok) {
+        result.innerHTML = `
+          <div class="alert alert-success">
+            <strong>Success!</strong><br>
+            You have joined club <b>ID ${data.clubId}</b> as <b>${data.role}</b>.
+          </div>`;
+      } else {
+        result.innerHTML = `<div class="alert alert-danger">${data.message || 'Invalid invite.'}</div>`;
+      }
+    } catch (err) {
+      console.error(err);
+      result.innerHTML = `<div class="alert alert-danger">Error contacting server.</div>`;
+    }
+  });
+
+  // Navbar dynamic links
+  window.addEventListener('DOMContentLoaded', () => {
+    const navbarLinks = document.getElementById('navbarLinks');
+    const token = localStorage.getItem('token');
+    const isLoggedIn = !!token;
+
+    if (isLoggedIn) {
+      navbarLinks.innerHTML = `
+        <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="clubs.html">All Clubs</a></li>
+        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" id="logoutBtn">Logout</a></li>
+      `;
+
+      setTimeout(() => {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'index.html';
+          });
+        }
+      }, 50);
+    } else {
+      navbarLinks.innerHTML = `
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
+        <li class="nav-item"><a class="nav-link" href="register.html">Register</a></li>
+      `;
+    }
+  });
+</script>
+
+<script src="scripts.js"></script>
+</body>
+</html>

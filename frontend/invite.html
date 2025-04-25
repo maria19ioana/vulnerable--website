@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Send Club Invite</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+  <h1>Send Invite</h1>
+  <form id="inviteForm">
+    <div class="mb-3">
+      <label for="clubId" class="form-label">Club ID</label>
+      <input type="number" class="form-control" id="clubId" required />
+    </div>
+
+    <div class="mb-3">
+      <label for="email" class="form-label">Invitee Email</label>
+      <input type="email" class="form-control" id="email" required />
+    </div>
+
+    <div class="mb-3">
+      <label for="role" class="form-label">Role (optional)</label>
+      <select class="form-control" id="role">
+        <option value="">Default (member)</option>
+        <option value="admin">Admin</option>
+        <option value="member">Member</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Send Invite</button>
+    <div id="message" class="mt-4"></div>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('inviteForm');
+  const msg = document.getElementById('message');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const clubId = document.getElementById('clubId').value;
+    const email = document.getElementById('email').value;
+    const role = document.getElementById('role').value;
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch("http://localhost:3001/clubs/${clubId}/invite", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email, role })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        msg.innerHTML = `<div class="alert alert-success">
+          Invite sent!<br>
+          <strong>Link:</strong> <a href="${data.inviteLink}" target="_blank">${data.inviteLink}</a>
+        </div>`;
+        form.reset();
+      } else {
+        msg.innerHTML = `<div class="alert alert-danger">${data.message || 'Error sending invite.'}</div>`;
+      }
+    } catch (err) {
+      console.error(err);
+      msg.innerHTML = `<div class="alert alert-danger">Network error.</div>`;
+    }
+  });
+</script>
+<script src="scripts.js"></script>
+<div id="navbar-container"></div>
+</body>
+</html>

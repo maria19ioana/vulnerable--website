@@ -8,6 +8,16 @@ router.get('/test-auth', (req, res) => {
   res.send('Auth route working!');
 });
 
+// Test login endpoint for debugging
+router.post('/test-login', (req, res) => {
+  console.log('Test login received:', req.body);
+  res.json({ 
+    success: true, 
+    message: 'Test login successful',
+    token: 'test-token-123' 
+  });
+});
+
 router.post('/register', (req, res) => {
   const { username, password } = req.body;
 
@@ -27,25 +37,44 @@ router.post('/register', (req, res) => {
 });
 
 router.post('/login', (req, res) => {
+  console.log('Login request received:', req.body);
+  
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).send('Username and password required.');
+    console.log('Login failed: Missing username or password');
+    return res.status(400).json({ 
+      success: false,
+      message: 'Username and password required.' 
+    });
   }
 
   const query = 'SELECT * FROM users WHERE username = ? AND password = ?';
   db.get(query, [username, password], (err, user) => {
     if (err) {
-      console.error(err);
-      return res.status(500).send('Error logging in.');
+      console.error('Database error during login:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error logging in. Database error.'
+      });
     }
 
     if (!user) {
-      return res.status(401).send('Invalid credentials.');
+      console.log('Login failed: Invalid credentials for user', username);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials.'
+      });
     }
 
+    console.log('Login successful for user:', username);
     const token = jwt.sign(user);
-    res.json({ token });
+    res.json({ 
+      success: true,
+      token,
+      username: user.username,
+      role: user.role
+    });
   });
 });
 

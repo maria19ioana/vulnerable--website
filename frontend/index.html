@@ -1,97 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>ClubConnect - Student Club Portal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
-
-  <!-- Stylesheets -->
-  <link href="css/bootstrap.min.css" rel="stylesheet" />
-  <link href="css/style.css" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClubConnect - Your Campus Community Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <style>
+    .hero-section {
+      background-image: url('images/hero-bg.svg');
+      background-size: cover;
+      background-position: center;
+      min-height: 600px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 0;
+    }
+    .feature-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1.5rem;
+    }
+    .service-item {
+      transition: transform 0.3s ease;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+    .service-item:hover {
+      transform: translateY(-10px);
+    }
+    .features-section {
+      background: #f8f9fa;
+      padding: 80px 0;
+    }
+    .btn-primary {
+      background-color: #FF1493;
+      border-color: #FF1493;
+    }
+    .btn-primary:hover {
+      background-color: #FF69B4;
+      border-color: #FF69B4;
+    }
+    .btn-outline-light:hover {
+      color: #FF1493;
+    }
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #FF1493;
+    }
+    .navbar-brand img {
+      height: 40px;
+      width: auto;
+    }
+  </style>
 </head>
 
 <body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <img src="images/logo.svg" alt="ClubConnect" height="40">
+        ClubConnect
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto" id="navbarLinks">
+          <!-- Dynamic navigation links will be inserted here -->
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-<!-- Navbar Start -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
-  <a href="index.html" class="navbar-brand p-0">
-    <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
-  </a>
-  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-    <span class="fa fa-bars"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarCollapse">
-    <ul id="navbarLinks" class="navbar-nav ms-auto py-0">
-      <!-- Links inserted dynamically -->
-    </ul>
-  </div>
-</nav>
-<!-- Navbar End -->
+  <!-- Hero Section -->
+  <section class="hero-section text-white">
+    <div class="container text-center">
+      <h1 class="display-3 fw-bold mb-4">Your Campus Community Hub</h1>
+      <p class="lead mb-5 fs-4">Join clubs, create events, and connect with fellow students in one centralized platform.</p>
+      <div class="d-flex justify-content-center gap-3">
+        <a href="register.html" class="btn btn-light btn-lg px-5">Get Started</a>
+        <a href="login.html" class="btn btn-outline-light btn-lg px-5">Login</a>
+      </div>
+    </div>
+  </section>
 
-<!-- Hero Section Start -->
-<div class="container-fluid bg-primary text-white text-center py-5 mb-5">
-  <div class="container py-5">
-    <h4 class="text-uppercase fw-bold mb-3">Student Clubs Portal</h4>
-    <h1 class="display-3 fw-bold mb-4">Join, Manage & Explore Clubs</h1>
-    <p class="lead mb-4">A centralized platform to create events, manage club members, and connect across campus.</p>
-    <a class="btn btn-light rounded-pill text-primary py-3 px-5 me-3" href="register.html">Get Started</a>
-    <a class="btn btn-outline-light rounded-pill py-3 px-5" href="login.html">Login</a>
-  </div>
-</div>
-<!-- Hero Section End -->
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="container py-5">
+      <div class="row g-4">
+        <!-- Join Clubs -->
+        <div class="col-md-4">
+          <div class="card service-item h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-5">
+              <img src="images/join-clubs.svg" alt="Join Clubs" class="feature-icon">
+              <h5 class="card-title mb-3">Join Clubs</h5>
+              <p class="card-text text-muted">Discover and join student clubs that match your interests and passions.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Create Events -->
+        <div class="col-md-4">
+          <div class="card service-item h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-5">
+              <img src="images/create-events.svg" alt="Create Events" class="feature-icon">
+              <h5 class="card-title mb-3">Create Events</h5>
+              <p class="card-text text-muted">Organize and manage club events with our easy-to-use event creation tools.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Connect -->
+        <div class="col-md-4">
+          <div class="card service-item h-100 border-0 shadow-sm">
+            <div class="card-body text-center p-5">
+              <img src="images/connect.svg" alt="Connect" class="feature-icon">
+              <h5 class="card-title mb-3">Connect</h5>
+              <p class="card-text text-muted">Build your network and connect with fellow students across campus.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- Footer Start -->
-<footer class="container-fluid bg-dark text-white text-center py-4">
-  <div class="container">
-    <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
-  </div>
-</footer>
-<!-- Footer End -->
+  <!-- Footer -->
+  <footer class="bg-dark text-white py-4">
+    <div class="container text-center">
+      <p class="mb-0">&copy; 2025 ClubConnect. All rights reserved.</p>
+    </div>
+  </footer>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="scripts.js"></script>
-<script>
-  document.getElementById("loginForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const messageEl = document.getElementById("login-message");
-
-    try {
-      const res = await fetch("http://localhost:3001/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("password", password); // pentru edit privileges
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 100);
-      } else {
-        messageEl.innerHTML = `<div class="alert alert-danger">Login failed: ${data.message || 'Invalid credentials.'}</div>`;
-      }
-
-    } catch (err) {
-      console.error(err);
-      messageEl.innerHTML = `<div class="alert alert-danger">Server error. Try again later.</div>;
-    }
-  });
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="scripts.js"></script>
 </body>
 </html>

@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Profile | ClubConnect</title>
+  <meta charset="utf-8" />
+  <title>Profile - ClubConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <!-- Stylesheets -->
   <link href="css/bootstrap.min.css" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
 </head>
-<body>
 
-<!-- Navbar -->
+<body class="bg-light">
+<!-- Navbar Start -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
   <a href="index.html" class="navbar-brand p-0">
     <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
@@ -18,51 +29,114 @@
     <span class="fa fa-bars"></span>
   </button>
   <div class="collapse navbar-collapse" id="navbarCollapse">
-    <ul id="navbarLinks" class="navbar-nav ms-auto py-0"></ul>
+    <ul id="navbarLinks" class="navbar-nav ms-auto py-0">
+      <!-- Links inserted dynamically -->
+    </ul>
   </div>
 </nav>
+<!-- Navbar End -->
 
-<!-- Profile Section -->
-<div class="container mt-5">
-  <h2>My Profile</h2>
-  <div id="not-logged-in" class="alert alert-warning d-none">You are not logged in.</div>
+<!-- Profile Content Start -->
+<div class="container py-5">
+  <div class="row">
+    <!-- Sidebar Start -->
+    <div class="col-lg-3">
+      <div class="card shadow-sm border-0 rounded-lg mb-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-4">
+            <div class="btn-square bg-primary rounded-circle me-3">
+              <i class="fas fa-user text-white"></i>
+            </div>
+            <h5 class="mb-0" id="username-display">Username</h5>
+          </div>
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link" href="dashboard.html">
+                <i class="fas fa-home me-2"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active text-primary" href="profile.html">
+                <i class="fas fa-user me-2"></i>Profile
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="create-club.html">
+                <i class="fas fa-plus me-2"></i>Create Club
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="create-event.html">
+                <i class="fas fa-calendar-plus me-2"></i>Create Event
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="logoutBtn">
+                <i class="fas fa-sign-out-alt me-2"></i>Logout
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Sidebar End -->
 
-  <div id="profile-info" class="d-none">
-    <p><strong>Username:</strong> <span id="profile-username"></span></p>
-    <p><strong>Password:</strong> <span id="profile-password"></span></p>
+    <!-- Main Content Start -->
+    <div class="col-lg-9">
+      <!-- Profile Card -->
+      <div class="card shadow-sm border-0 rounded-lg mb-4">
+        <div class="card-body p-4">
+          <h4 class="text-primary mb-4">Profile Information</h4>
+          <form id="profileForm">
+            <div class="row">
+              <div class="col-md-6 mb-4">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" readonly>
+              </div>
+              <div class="col-md-6 mb-4">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" required>
+              </div>
+              <div class="col-md-6 mb-4">
+                <label for="currentPassword" class="form-label">Current Password</label>
+                <input type="password" class="form-control" id="currentPassword">
+              </div>
+              <div class="col-md-6 mb-4">
+                <label for="newPassword" class="form-label">New Password</label>
+                <input type="password" class="form-control" id="newPassword">
+              </div>
+            </div>
+            <div id="profile-message"></div>
+            <button type="submit" class="btn btn-primary">Update Profile</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- My Clubs -->
+      <div class="card shadow-sm border-0 rounded-lg">
+        <div class="card-body p-4">
+          <h4 class="text-primary mb-4">My Clubs</h4>
+          <div id="clubs-list" class="row g-4">
+            <!-- Club cards will be inserted here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Main Content End -->
   </div>
 </div>
+<!-- Profile Content End -->
+
+<!-- Footer Start -->
+<footer class="container-fluid bg-dark text-white text-center py-4">
+  <div class="container">
+    <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
+  </div>
+</footer>
+<!-- Footer End -->
 
 <!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="scripts.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    buildNavbar();
-
-    const token = localStorage.getItem("token");
-    const password = localStorage.getItem("password");
-
-    if (!token) {
-      document.getElementById("not-logged-in").classList.remove("d-none");
-    } else {
-      document.getElementById("profile-info").classList.remove("d-none");
-
-      fetch("http://localhost:3001/profile", {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("profile-username").textContent = data.username || "Unknown";
-        document.getElementById("profile-password").textContent = password || "(not stored)";
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("profile-username").textContent = "Error";
-        document.getElementById("profile-password").textContent = "Error";
-      });
-    }
-  });
-</script>
-
 </body>
 </html>

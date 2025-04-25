@@ -13,7 +13,9 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS clubs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
-    owner_id INTEGER
+    owner_id INTEGER,
+    description TEXT,
+    category TEXT
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS events (

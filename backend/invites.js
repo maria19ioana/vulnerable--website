@@ -22,7 +22,7 @@ router.post('/clubs/:id/invite', auth, (req, res) => {
       return res.status(500).send('Error creating invite.');
     }
 
-    const inviteLink = `http://localhost:3001/accept-invite?token=${token}`;
+    const inviteLink = `http://localhost:3000/accept-invite?token=${token}`;
     res.json({ inviteLink });
   });
 });

@@ -6,15 +6,57 @@ const auth = require('./middleware');
 
 router.get('/dashboard', auth, (req, res) => {
   const userId = req.user.id;
+  
+  console.log('Dashboard request received for user ID:', userId);
 
   const query = 'SELECT * FROM clubs WHERE owner_id = ?';
   db.all(query, [userId], (err, clubs) => {
     if (err) {
-      console.error(err);
-      return res.status(500).send('Error fetching clubs.');
+      console.error('Error fetching clubs for dashboard:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching clubs.',
+        error: err.message
+      });
     }
 
-    res.json(clubs);
+    console.log(`Found ${clubs.length} clubs for user ID: ${userId}`);
+    
+    // Get upcoming events count for each club (simplified version)
+    const eventsQuery = 'SELECT COUNT(*) as eventCount, club_id FROM events GROUP BY club_id';
+    db.all(eventsQuery, [], (eventsErr, eventCounts) => {
+      if (eventsErr) {
+        console.error('Error fetching event counts:', eventsErr);
+        // Continue with clubs only, don't fail the whole request
+        return res.json({
+          success: true,
+          clubs: clubs,
+          eventCounts: [],
+          totalEvents: 0
+        });
+      }
+      
+      // Create event count map
+      const eventCountMap = {};
+      let totalEvents = 0;
+      
+      eventCounts.forEach(count => {
+        eventCountMap[count.club_id] = count.eventCount;
+        totalEvents += count.eventCount;
+      });
+      
+      // Add event count to each club
+      clubs.forEach(club => {
+        club.eventCount = eventCountMap[club.id] || 0;
+      });
+      
+      res.json({
+        success: true,
+        clubs: clubs,
+        eventCounts: eventCountMap,
+        totalEvents: totalEvents
+      });
+    });
   });
 });
 
@@ -33,21 +75,46 @@ router.get('/clubs/:club_id/events/view/:enc_event_id', auth, (req, res) => {
 });
 
 router.post('/clubs/create', auth, (req, res) => {
-  const { name } = req.body;
+  const { name, description, category } = req.body;
   const userId = req.user.id;
+  
+  console.log('Club creation request received:', req.body);
+  console.log('User ID:', userId);
 
   if (!name) {
-    return res.status(400).send('Club name required.');
+    console.log('Club creation failed: Missing name');
+    return res.status(400).json({
+      success: false,
+      message: 'Club name is required.'
+    });
   }
 
-  const query = 'INSERT INTO clubs (name, owner_id) VALUES (?, ?)';
-  db.run(query, [name, userId], function(err) {
+  const query = 'INSERT INTO clubs (name, owner_id, description, category) VALUES (?, ?, ?, ?)';
+  db.run(query, [name, userId, description || '', category || ''], function(err) {
     if (err) {
-      console.error(err);
-      return res.status(500).send('Error creating club.');
+      console.error('Error creating club:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating club.',
+        error: err.message
+      });
     }
 
-    res.send('Club created successfully.');
+    const clubId = this.lastID;
+    console.log(`Club created successfully with ID: ${clubId}`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Club created successfully.',
+      clubId: clubId,
+      club: {
+        id: clubId,
+        name: name,
+        owner_id: userId,
+        description: description || '',
+        category: category || ''
+      }
+    });
   });
 });
 

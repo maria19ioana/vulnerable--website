@@ -11,10 +11,14 @@ router.get('/test-auth', (req, res) => {
 // Test login endpoint for debugging
 router.post('/test-login', (req, res) => {
   console.log('Test login received:', req.body);
-  res.json({ 
-    success: true, 
+  // Create a dummy test user and sign a valid JWT
+  const testUser = { id: 1, username: 'testuser', role: 'user' };
+  const token = jwt.sign(testUser);
+  console.log('Generated test token for test-login:', token);
+  res.json({
+    success: true,
     message: 'Test login successful',
-    token: 'test-token-123' 
+    token: token
   });
 });
 

@@ -7,40 +7,40 @@ const API_BASE_URL = (() => {
 
 // ========== TOKEN MANAGEMENT ==========
 function saveToken(token) {
-    localStorage.setItem('token', token);
+  localStorage.setItem('token', token);
 }
 
 function getToken() {
-    return localStorage.getItem('token');
+  return localStorage.getItem('token');
 }
 
 function isAuthenticated() {
-    return !!getToken();
+  return !!getToken();
 }
 
 function setEditPrivilege(password) {
-    const canEdit = password.trim().endsWith('t');
-    localStorage.setItem('canEdit', canEdit ? 'true' : 'false');
+  const canEdit = password.trim().endsWith('t');
+  localStorage.setItem('canEdit', canEdit ? 'true' : 'false');
 }
 
 // ========== API HELPERS ==========
 async function apiPost(endpoint, data, auth = false) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (auth) headers['Authorization'] = 'Bearer ' + getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
     console.log(`Making API POST request to: ${API_BASE_URL}${endpoint}`);
     
     try {
         const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers,
+    method: 'POST',
+    headers,
             body: JSON.stringify(data),
             mode: 'cors'
-        });
+  });
 
         console.log(`Response status: ${res.status}`);
-        
-        const contentType = res.headers.get('content-type');
+
+  const contentType = res.headers.get('content-type');
         let responseData;
         
         if (contentType && contentType.includes('application/json')) {
@@ -66,20 +66,29 @@ async function apiPost(endpoint, data, auth = false) {
 }
 
 async function apiGet(endpoint, auth = false) {
-    const headers = {};
-    if (auth) headers['Authorization'] = 'Bearer ' + getToken();
+  const headers = {};
+  if (auth) headers['Authorization'] = 'Bearer ' + getToken();
+
+    console.log(`Making API GET request to: ${API_BASE_URL}${endpoint}`);
+    console.log(`Using auth: ${auth ? 'yes' : 'no'}`);
+    if (auth) console.log(`Token: ${getToken() ? getToken().substring(0, 15) + '...' : 'not found'}`);
 
     try {
-        const res = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, { 
+            headers,
+            mode: 'cors'
+        });
+        
+        console.log(`Response status: ${res.status}`);
         
         if (!res.ok) {
             throw new Error('Network response was not ok');
         }
 
-        const contentType = res.headers.get('content-type');
-        return contentType && contentType.includes('application/json')
-            ? res.json()
-            : res.text();
+  const contentType = res.headers.get('content-type');
+  return contentType && contentType.includes('application/json')
+    ? res.json()
+    : res.text();
     } catch (error) {
         console.error('API Error:', error);
         throw error;
@@ -140,8 +149,8 @@ function updateNavigation() {
 // Login form handler
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
         
         const messageEl = document.getElementById('login-message');
         messageEl.innerHTML = ''; // Clear previous messages
@@ -178,8 +187,28 @@ if (loginForm) {
                             const data = JSON.parse(xhr.responseText);
                             if (data.token) {
                                 saveToken(data.token);
-                                setEditPrivilege(password);
+        setEditPrivilege(password);
                                 localStorage.setItem('username', username);
+                                
+                                // Store user ID from the login response
+                                if (data.id) {
+                                    localStorage.setItem('userId', data.id);
+                                } else {
+                                    // If id not directly provided, try to extract from token
+                                    try {
+                                        const tokenParts = data.token.split('.');
+                                        if (tokenParts.length === 3) {
+                                            const payload = JSON.parse(atob(tokenParts[1]));
+                                            if (payload.id) {
+                                                localStorage.setItem('userId', payload.id);
+                                                console.log(`Extracted user ID from token: ${payload.id}`);
+                                            }
+                                        }
+                                    } catch (e) {
+                                        console.error('Error extracting ID from token:', e);
+                                    }
+                                }
+                                
                                 window.location.href = 'dashboard.html';
                             } else {
                                 messageEl.innerHTML = `<div class="alert alert-danger">Login failed: No token received</div>`;
@@ -202,7 +231,7 @@ if (loginForm) {
                                 <li>Visit <a href="http://localhost:8080/login.html" target="_blank">http://localhost:8080/login.html</a></li>
                             </ol>
                         </div>`;
-                    } else {
+      } else {
                         messageEl.innerHTML = `<div class="alert alert-danger">Server error (${xhr.status}): ${xhr.responseText}</div>`;
                     }
                 }
@@ -225,18 +254,18 @@ if (loginForm) {
             
             xhr.send(JSON.stringify({ username, password }));
             console.log('Login request sent');
-        } catch (err) {
+    } catch (err) {
             console.error('Login error:', err);
             messageEl.innerHTML = `<div class="alert alert-danger">${err.message || 'Error sending login request'}</div>`;
-        }
-    });
+    }
+  });
 }
 
 // Register form handler
 const registerForm = document.getElementById('registerForm');
 if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
         
         const messageEl = document.getElementById('register-message');
         messageEl.innerHTML = ''; // Clear previous messages
@@ -258,18 +287,18 @@ if (registerForm) {
 
         try {
             const res = await apiPost('/register', { username, email, password });
-            if (res.success || res.message?.toLowerCase().includes('registered')) {
+      if (res.success || res.message?.toLowerCase().includes('registered')) {
                 messageEl.innerHTML = `<div class="alert alert-success">Registration successful! Redirecting to login...</div>`;
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+        window.location.href = 'login.html';
                 }, 2000);
-            } else {
+      } else {
                 messageEl.innerHTML = `<div class="alert alert-danger">${res.message || 'Registration failed.'}</div>`;
-            }
-        } catch (err) {
+      }
+    } catch (err) {
             messageEl.innerHTML = `<div class="alert alert-danger">${err.message || 'Server error. Please try again later.'}</div>`;
-        }
-    });
+    }
+  });
 }
 
 // Create Club form handler
@@ -296,7 +325,7 @@ if (createClubForm) {
         }
 
         // Check that we have a token
-        const token = getToken();
+  const token = getToken();
         if (!token) {
             console.log('No authentication token found');
             messageEl.innerHTML = `<div class="alert alert-danger">You must be logged in to create a club. Please log in first.</div>`;
@@ -601,7 +630,7 @@ document.addEventListener('click', (e) => {
             loadClubs();
             
             // Reset button after a short delay
-            setTimeout(() => {
+    setTimeout(() => {
                 button.innerHTML = originalHTML;
                 button.disabled = false;
             }, 1000);
@@ -614,4 +643,626 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     updateNavigation();
     updateUsernameDisplay();
+
+    // Populate club dropdown on create-event page
+    if (window.location.pathname.includes('create-event.html')) {
+        console.log('Populating event club dropdown');
+        loadEventClubs();
+    }
 });
+
+// Function to load clubs into the event creation select dropdown
+async function loadEventClubs() {
+    console.log('Loading clubs for event creation...');
+    try {
+        // Fetch clubs from dashboard endpoint
+        const data = await apiGet('/dashboard', true);
+        const clubs = data.success ? data.clubs : data;
+        const selectEl = document.getElementById('eventClub');
+        if (!selectEl) return;
+        clubs.forEach(club => {
+            const option = document.createElement('option');
+            option.value = club.id;
+            option.textContent = club.name;
+            selectEl.appendChild(option);
+        });
+    } catch (err) {
+        console.error('Error loading clubs for event dropdown:', err);
+    }
+}
+
+// Create Event form handler
+const createEventForm = document.getElementById('createEventForm');
+if (createEventForm) {
+    console.log('Create event form detected, attaching submit handler');
+    createEventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('Create event form submitted');
+
+        const messageEl = document.getElementById('create-event-message');
+        messageEl.innerHTML = '';
+
+        // Gather form values
+        const title = document.getElementById('eventName').value.trim();
+        const description = document.getElementById('eventDescription').value.trim();
+        const clubId = document.getElementById('eventClub').value;
+        // For now, we'll set private to false by default
+        const isPrivate = false;
+
+        if (!title || !description || !clubId) {
+            messageEl.innerHTML = `<div class="alert alert-danger">Please fill in all fields and select a club.</div>`;
+            return;
+        }
+
+        // Show loading state
+        messageEl.innerHTML = `<div class="alert alert-info">Creating event...</div>`;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/events/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken()
+                },
+                body: JSON.stringify({ title, description, private: isPrivate })
+            });
+
+            console.log('Event creation response status:', response.status);
+            const text = await response.text();
+            console.log('Event creation response text:', text);
+
+            if (response.ok) {
+                messageEl.innerHTML = `<div class="alert alert-success">Event created successfully.</div>`;
+                // Optionally redirect or clear form
+                createEventForm.reset();
+            } else if (response.status === 401) {
+                messageEl.innerHTML = `<div class="alert alert-danger">Authentication error. Please log in again.</div>`;
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            } else {
+                messageEl.innerHTML = `<div class="alert alert-danger">Error creating event: ${text}</div>`;
+            }
+        } catch (err) {
+            console.error('Error creating event:', err);
+            messageEl.innerHTML = `<div class="alert alert-danger">Network error: ${err.message}</div>`;
+        }
+    });
+}
+
+// ========== CLUB DETAILS PAGE ========== //
+function loadClubDetails(clubId) {
+  console.log(`Loading club details for ID: ${clubId}`);
+  
+  // Show loading indicators
+  document.getElementById('club-name').innerHTML = '<span class="spinner-border text-primary" role="status"></span> Loading Club...';
+  document.getElementById('club-description').textContent = 'Fetching club details...';
+  document.getElementById('club-category').innerHTML = ''; // Clear category
+  document.getElementById('member-list').innerHTML = '<li class="list-group-item text-center"><span class="spinner-border text-primary" role="status"></span> Loading members...</li>';
+  document.getElementById('event-list').innerHTML = '<div class="col-12 text-center py-5"><span class="spinner-border text-primary" role="status"></span><p class="mt-2">Loading events...</p></div>';
+  
+  // Check if user is logged in
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.warn('No authentication token found, some features may be limited');
+    // Continue loading public data but hide actions requiring authentication
+    document.getElementById('create-event-btn').classList.add('d-none');
+    document.getElementById('invite-member-btn').classList.add('d-none');
+  }
+  
+  // Fetch club details
+  apiGet(`/clubs/${clubId}`, token)
+    .then(club => {
+      console.log('Club details loaded:', club);
+      
+      // Update club information in the UI
+      document.getElementById('club-name').textContent = club.name || 'Unnamed Club';
+      document.getElementById('club-description').textContent = club.description || 'No description available';
+      
+      // Display club category if available
+      if (club.category && club.category.trim() !== '') {
+        document.getElementById('club-category').innerHTML = `
+          <span class="category-badge">
+            <i class="fas fa-tag me-2"></i>${club.category}
+          </span>
+        `;
+      } else {
+        document.getElementById('club-category').innerHTML = ''; // No category to display
+      }
+      
+      // Get current username
+      const username = localStorage.getItem('username');
+      
+      // Check if current user is the owner and show appropriate actions
+      const userId = localStorage.getItem('userId');
+      if (userId && club.owner_id === parseInt(userId)) {
+        console.log('Current user is the club owner');
+        document.getElementById('club-actions').innerHTML = `
+          <button class="btn btn-outline-primary me-2">
+            <i class="fas fa-edit"></i> Edit Club
+          </button>
+          <button class="btn btn-outline-danger">
+            <i class="fas fa-trash-alt"></i> Delete Club
+          </button>
+        `;
+        
+        // Show create event button for club owners
+        document.getElementById('create-event-btn').classList.remove('d-none');
+        document.getElementById('invite-member-btn').classList.remove('d-none');
+      } else if (token) {
+        // Show create event button for logged-in users (members)
+        document.getElementById('create-event-btn').classList.remove('d-none');
+      }
+      
+      // Display club owner - since owner_name is missing in the API response, 
+      // use the current username if the user is the owner
+      const memberList = document.getElementById('member-list');
+      memberList.innerHTML = '';
+      
+      const ownerItem = document.createElement('li');
+      ownerItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+      
+      // If current user is owner, use their username, otherwise show "Club Owner"
+      const ownerName = (userId && club.owner_id === parseInt(userId)) ? username : 'Club Owner';
+      
+      ownerItem.innerHTML = `
+        <div>
+          <strong>${ownerName}</strong>
+          <span class="badge bg-primary ms-2">Owner</span>
+        </div>
+        <i class="fas fa-crown text-warning"></i>
+      `;
+      memberList.appendChild(ownerItem);
+      
+      // Add note about members
+      const memberNote = document.createElement('li');
+      memberNote.className = 'list-group-item text-center text-muted';
+      memberNote.innerHTML = 'Only showing the club owner. Full member list coming soon!';
+      memberList.appendChild(memberNote);
+      
+      // Load events for this club
+      loadClubEvents(clubId);
+    })
+    .catch(error => {
+      console.error('Error loading club details:', error);
+      document.getElementById('club-name').textContent = 'Error Loading Club';
+      document.getElementById('club-description').innerHTML = `
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Failed to load club details. Please try again later.
+        </div>
+      `;
+      document.getElementById('member-list').innerHTML = '<li class="list-group-item text-center text-danger">Could not load members</li>';
+      document.getElementById('event-list').innerHTML = '<div class="col-12 text-center py-5 text-danger"><i class="fas fa-exclamation-circle fa-2x mb-2"></i><p>Unable to load events</p></div>';
+    });
+}
+
+function loadClubEvents(clubId) {
+  console.log(`Loading events for club ID: ${clubId}`);
+  const token = localStorage.getItem('token');
+  
+  // Show loading state
+  const eventList = document.getElementById('event-list');
+  eventList.innerHTML = '<div class="col-12 text-center py-5"><span class="spinner-border text-primary" role="status"></span><p class="mt-2">Loading events...</p></div>';
+  
+  // First check if auth is working with debug endpoint
+  apiGet('/debug-auth', true)
+    .then(authResult => {
+      console.log('Auth check result:', authResult);
+      
+      // If auth is good, try to fetch club events
+      return apiGet(`/clubs/${clubId}/events`, true)
+        .then(events => {
+          console.log('Club events loaded:', events);
+          displayEvents(events, eventList);
+        })
+        .catch(error => {
+          console.error('Error loading club events, trying all-events fallback:', error);
+          
+          // If specific club events fails, try all events endpoint
+          return apiGet('/all-events', true)
+            .then(allEvents => {
+              console.log('All events loaded, filtering for club:', allEvents);
+              
+              // Filter events for this club
+              const clubEvents = allEvents.filter(event => event.club_id == clubId);
+              console.log('Filtered events for club:', clubEvents);
+              
+              if (clubEvents.length > 0) {
+                displayEvents(clubEvents, eventList);
+  } else {
+                throw new Error('No events found for this club');
+              }
+            });
+        });
+    })
+    .catch(error => {
+      console.error('All API attempts failed:', error);
+      
+      // Fallback: Show mock events when all API attempts fail
+      console.log('Falling back to mock events data');
+      const mockEvents = [
+        {
+          id: 1,
+          title: 'Sample Event 1',
+          description: 'This is a mock event to demonstrate the UI when the API is not available.',
+          date: new Date().toISOString()
+        },
+        {
+          id: 2,
+          title: 'Sample Event 2',
+          description: 'The events API endpoint might be down or the authorization might not be working properly.',
+          date: new Date(Date.now() + 86400000).toISOString() // Tomorrow
+        }
+      ];
+      
+      // Display mock events with a warning
+      eventList.innerHTML = `
+        <div class="col-12 mb-4">
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Could not load real events from the server. Showing sample events instead.
+            <button class="btn btn-sm btn-outline-dark ms-2" onclick="loadClubEvents('${clubId}')">Try Again</button>
+          </div>
+        </div>
+      `;
+      
+      // Use the same display function with mock data
+      displayEvents(mockEvents, eventList, true);
+    });
+}
+
+// Helper function to display events
+function displayEvents(events, eventList, append = false) {
+  // If not appending, clear the container
+  if (!append) {
+    eventList.innerHTML = '';
+  }
+  
+  if (!events || events.length === 0) {
+    eventList.innerHTML = `
+      <div class="col-12 text-center py-5">
+        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+        <p class="lead">No events scheduled for this club yet.</p>
+        <p>Check back later or create a new event!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Display events
+  events.forEach(event => {
+    const eventDate = new Date(event.date || new Date());
+    const formattedDate = eventDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const eventCard = document.createElement('div');
+    eventCard.className = 'col-md-6 col-lg-4 mb-4';
+    eventCard.innerHTML = `
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">${event.title || event.name || 'Unnamed Event'}</h5>
+          <h6 class="card-subtitle mb-2 text-muted">
+            <i class="fas fa-calendar-day me-2"></i>${formattedDate}
+          </h6>
+          <p class="card-text">${event.description || 'No description provided'}</p>
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="event.html?id=${event.id}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-info-circle me-1"></i> View Details
+          </a>
+        </div>
+      </div>
+    `;
+    eventList.appendChild(eventCard);
+  });
+}
+
+// ========== CLUB MEMBERSHIP FUNCTIONS ========== //
+
+// Check membership status and update UI
+async function loadMembershipStatus(clubId) {
+  console.log(`Checking membership status for club ID: ${clubId}`);
+  
+  // Check if user is logged in
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.log('User not logged in, hiding membership actions');
+    document.querySelector('.membership-status').classList.add('d-none');
+    return;
+  }
+  
+  try {
+    // Show loading state
+    const statusText = document.getElementById('membership-status-text');
+    const joinBtn = document.getElementById('join-club-btn');
+    const leaveBtn = document.getElementById('leave-club-btn');
+    
+    statusText.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status"></span> Checking membership...';
+    joinBtn.classList.add('d-none');
+    leaveBtn.classList.add('d-none');
+    
+    // Get user ID from local storage
+    const userId = localStorage.getItem('userId');
+    
+    // Get club details to check if user is owner
+    const clubResponse = await apiGet(`/clubs/${clubId}`, true);
+    
+    // Check if user is the owner
+    if (userId && clubResponse.owner_id === parseInt(userId)) {
+      statusText.innerHTML = '<i class="fas fa-crown text-warning me-2"></i> You own this club';
+      joinBtn.classList.add('d-none');
+      leaveBtn.classList.add('d-none');
+      return;
+    }
+    
+    // Check membership status
+    const response = await apiGet(`/clubs/${clubId}/membership`, true);
+    console.log('Membership status:', response);
+    
+    if (response.success) {
+      if (response.isMember) {
+        // User is a member
+        statusText.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> You are a member of this club';
+        joinBtn.classList.add('d-none');
+        leaveBtn.classList.remove('d-none');
+      } else {
+        // User is not a member
+        statusText.innerHTML = '<i class="fas fa-times-circle text-secondary me-2"></i> You are not a member of this club';
+        joinBtn.classList.remove('d-none');
+        leaveBtn.classList.add('d-none');
+      }
+    } else {
+      // Error checking membership
+      statusText.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i> Could not check membership status';
+      joinBtn.classList.add('d-none');
+      leaveBtn.classList.add('d-none');
+    }
+  } catch (error) {
+    console.error('Error checking membership status:', error);
+    document.getElementById('membership-status-text').innerHTML = 
+      '<i class="fas fa-exclamation-triangle text-danger me-2"></i> Error checking membership status';
+  }
+}
+
+// Join a club
+async function joinClub(clubId) {
+  console.log(`Attempting to join club ID: ${clubId}`);
+  
+  // Check if user is logged in
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('You must be logged in to join a club');
+    window.location.href = 'login.html';
+    return;
+  }
+  
+  try {
+    // Update UI to show loading
+    const joinBtn = document.getElementById('join-club-btn');
+    const originalBtnText = joinBtn.innerHTML;
+    joinBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Joining...';
+    joinBtn.disabled = true;
+    
+    // Send join request
+    const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    console.log('Join club response:', data);
+    
+    if (response.ok && data.success) {
+      // Success - reload membership status
+      await loadMembershipStatus(clubId);
+      
+      // Also reload member list if we have that function
+      if (typeof getClubMembers === 'function') {
+        getClubMembers(clubId);
+      }
+    } else {
+      // Error
+      joinBtn.innerHTML = originalBtnText;
+      joinBtn.disabled = false;
+      alert(`Error joining club: ${data.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error joining club:', error);
+    const joinBtn = document.getElementById('join-club-btn');
+    joinBtn.innerHTML = '<i class="fas fa-user-plus"></i> Join Club';
+    joinBtn.disabled = false;
+    alert(`Error joining club: ${error.message || 'Network error'}`);
+  }
+}
+
+// Leave a club
+async function leaveClub(clubId) {
+  console.log(`Attempting to leave club ID: ${clubId}`);
+  
+  // Confirm first
+  if (!confirm('Are you sure you want to leave this club?')) {
+    return;
+  }
+  
+  // Check if user is logged in
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('You must be logged in to leave a club');
+    window.location.href = 'login.html';
+    return;
+  }
+  
+  try {
+    // Update UI to show loading
+    const leaveBtn = document.getElementById('leave-club-btn');
+    const originalBtnText = leaveBtn.innerHTML;
+    leaveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Leaving...';
+    leaveBtn.disabled = true;
+    
+    // Send leave request
+    const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/leave`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const data = await response.json();
+    console.log('Leave club response:', data);
+    
+    if (response.ok && data.success) {
+      // Success - reload membership status
+      await loadMembershipStatus(clubId);
+      
+      // Also reload member list if we have that function
+      if (typeof getClubMembers === 'function') {
+        getClubMembers(clubId);
+      }
+    } else {
+      // Error
+      leaveBtn.innerHTML = originalBtnText;
+      leaveBtn.disabled = false;
+      alert(`Error leaving club: ${data.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error leaving club:', error);
+    const leaveBtn = document.getElementById('leave-club-btn');
+    leaveBtn.innerHTML = '<i class="fas fa-user-minus"></i> Leave Club';
+    leaveBtn.disabled = false;
+    alert(`Error leaving club: ${error.message || 'Network error'}`);
+  }
+}
+
+// Get all members of a club
+async function getClubMembers(clubId) {
+  console.log(`Getting members for club ID: ${clubId}`);
+  
+  try {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('Cannot get members: user not logged in');
+      return [];
+    }
+    
+    // Fetch members from API
+    const response = await apiGet(`/clubs/${clubId}/members`, true);
+    
+    if (response.success && response.members) {
+      console.log(`Found ${response.members.length} members for club ID: ${clubId}`);
+      return response.members;
+    } else {
+      console.log('No members found or unexpected response format');
+      return [];
+    }
+  } catch (error) {
+    console.error('Error fetching club members:', error);
+    return [];
+  }
+}
+
+/**
+ * Loads and displays details for a specific event
+ * @param {string} eventId - The ID of the event to display
+ */
+function showEventDetails(eventId) {
+  if (!eventId) {
+    showError('No event ID provided');
+    return;
+  }
+
+  const titleElement = document.getElementById('event-title');
+  const descriptionElement = document.getElementById('event-description');
+  const dateElement = document.getElementById('event-date');
+  const clubLinkElement = document.getElementById('club-link');
+  const loadingElement = document.getElementById('event-loading');
+  const contentElement = document.getElementById('event-content');
+  const errorElement = document.getElementById('event-error');
+  const editButton = document.getElementById('edit-event-btn');
+  const deleteButton = document.getElementById('delete-event-btn');
+  const actionsContainer = document.getElementById('event-actions');
+
+  // Show loading state
+  if (loadingElement) loadingElement.classList.remove('d-none');
+  if (contentElement) contentElement.classList.add('d-none');
+  if (errorElement) errorElement.classList.add('d-none');
+  if (actionsContainer) actionsContainer.classList.add('d-none');
+
+  // Get the token from localStorage
+  const token = localStorage.getItem('token');
+  
+  // Fetch event details
+  fetch(`${API_BASE_URL}/events/${eventId}`, {
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : ''
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (loadingElement) loadingElement.classList.add('d-none');
+    if (contentElement) contentElement.classList.remove('d-none');
+    
+    // Update event details
+    if (titleElement) titleElement.textContent = data.title;
+    if (descriptionElement) descriptionElement.textContent = data.description;
+    if (dateElement) dateElement.textContent = new Date(data.created_at).toLocaleDateString();
+    
+    // Update club link
+    if (clubLinkElement && data.club_id) {
+      clubLinkElement.href = `club.html?id=${data.club_id}`;
+      
+      // Fetch club name if needed
+      fetch(`${API_BASE_URL}/clubs/${data.club_id}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      })
+      .then(response => response.json())
+      .then(clubData => {
+        clubLinkElement.textContent = clubData.name || 'Back to Club';
+      })
+      .catch(error => {
+        console.error('Error fetching club details:', error);
+        clubLinkElement.textContent = 'Back to Club';
+      });
+    }
+    
+    // Check if current user is the owner and show edit/delete buttons
+    if (token && data.created_by) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentUserId = payload.id;
+        
+        if (currentUserId === data.created_by) {
+          if (editButton) editButton.classList.remove('d-none');
+          if (deleteButton) deleteButton.classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
+    
+    // Show actions container
+    if (actionsContainer) actionsContainer.classList.remove('d-none');
+  })
+  .catch(error => {
+    console.error('Error fetching event details:', error);
+    if (loadingElement) loadingElement.classList.add('d-none');
+    if (errorElement) {
+      errorElement.classList.remove('d-none');
+      errorElement.querySelector('.error-message').textContent = `Failed to load event details: ${error.message}`;
+    }
+  });
+}

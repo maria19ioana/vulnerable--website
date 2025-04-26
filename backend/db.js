@@ -33,6 +33,20 @@ db.serialize(() => {
     token TEXT,
     role TEXT
   )`);
+  
+  // New table to track club memberships
+  db.run(`CREATE TABLE IF NOT EXISTS club_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    club_id INTEGER,
+    user_id INTEGER,
+    join_date TEXT,
+    role TEXT DEFAULT 'member',
+    UNIQUE(club_id, user_id)
+  )`);
+  
+  // Add owner as member for existing clubs
+  db.run(`INSERT OR IGNORE INTO club_members (club_id, user_id, join_date, role)
+    SELECT id, owner_id, datetime('now'), 'owner' FROM clubs`);
 });
 
 module.exports = db;

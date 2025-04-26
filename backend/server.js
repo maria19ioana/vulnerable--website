@@ -55,6 +55,102 @@ app.use('/', authRoutes);
 app.use('/', clubRoutes);
 app.use('/', inviteRoutes);
 
+// Direct event routes handler for /events endpoints
+const auth = require('./middleware');
+const db = require('./db');
+
+// Get event by ID
+app.get('/events/:id', auth, (req, res) => {
+    const eventId = req.params.id;
+    console.log(`Event details request for event ID: ${eventId}`);
+  
+    const query = 'SELECT * FROM events WHERE id = ?';
+    db.get(query, [eventId], (err, event) => {
+      if (err) {
+        console.error('Error fetching event details:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error fetching event details.' 
+        });
+      }
+  
+      if (!event) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Event not found.' 
+        });
+      }
+  
+      res.json(event);
+    });
+});
+  
+// Update event by ID
+app.put('/events/:id', auth, (req, res) => {
+    const eventId = req.params.id;
+    const { title, description } = req.body;
+    console.log(`Update request for event ID: ${eventId}`);
+  
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title and description are required.'
+      });
+    }
+  
+    const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
+    db.run(query, [title, description, eventId], function(err) {
+      if (err) {
+        console.error('Error updating event:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error updating event.'
+        });
+      }
+  
+      if (this.changes === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found or no changes made.'
+        });
+      }
+  
+      res.json({
+        success: true,
+        message: 'Event updated successfully.'
+      });
+    });
+});
+  
+// Delete event by ID
+app.delete('/events/:id', auth, (req, res) => {
+    const eventId = req.params.id;
+    console.log(`Delete request for event ID: ${eventId}`);
+  
+    const query = 'DELETE FROM events WHERE id = ?';
+    db.run(query, [eventId], function(err) {
+      if (err) {
+        console.error('Error deleting event:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error deleting event.'
+        });
+      }
+  
+      if (this.changes === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Event not found.'
+        });
+      }
+  
+      res.json({
+        success: true,
+        message: 'Event deleted successfully.'
+      });
+    });
+});
+
 // Test route
 app.get('/test', (req, res) => {
     res.send('Server is running!');

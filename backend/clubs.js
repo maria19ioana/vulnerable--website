@@ -74,46 +74,46 @@ router.get('/clubs/:club_id/events/view/:enc_event_id', auth, (req, res) => {
   }
 });
 
-router.post('/clubs/create', auth, (req, res) => {
-  const { name, description, category } = req.body;
-  const userId = req.user.id;
+router.post('/clubs', auth, (req, res) => {
+  console.log('Create club request received');
+  const { name, description, location, category } = req.body;
   
-  console.log('Club creation request received:', req.body);
-  console.log('User ID:', userId);
-
   if (!name) {
-    console.log('Club creation failed: Missing name');
-    return res.status(400).json({
-      success: false,
-      message: 'Club name is required.'
-    });
+    console.log('Error: Club name is required');
+    return res.status(400).json({ success: false, message: 'Club name is required' });
   }
-
-  const query = 'INSERT INTO clubs (name, owner_id, description, category) VALUES (?, ?, ?, ?)';
-  db.run(query, [name, userId, description || '', category || ''], function(err) {
+  
+  const ownerId = req.user.id;
+  const query = `INSERT INTO clubs (name, description, location, category, owner_id, created_at)
+                 VALUES (?, ?, ?, ?, ?, datetime('now'))`;
+                 
+  db.run(query, [name, description, location, category, ownerId], function(err) {
     if (err) {
       console.error('Error creating club:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Error creating club.',
-        error: err.message
-      });
+      return res.status(500).json({ success: false, message: 'Error creating club' });
     }
-
-    const clubId = this.lastID;
-    console.log(`Club created successfully with ID: ${clubId}`);
     
-    res.status(201).json({
-      success: true,
-      message: 'Club created successfully.',
-      clubId: clubId,
-      club: {
-        id: clubId,
-        name: name,
-        owner_id: userId,
-        description: description || '',
-        category: category || ''
+    const clubId = this.lastID;
+    
+    // Add owner as a member with owner role
+    const memberQuery = `INSERT INTO club_members (club_id, user_id, join_date, role) 
+                         VALUES (?, ?, datetime('now'), 'owner')`;
+    
+    db.run(memberQuery, [clubId, ownerId], function(err) {
+      if (err) {
+        console.error('Error adding owner as club member:', err);
+        // Don't fail the whole operation if this fails
+        console.log(`Club created with ID: ${clubId}, but owner not added as member`);
+      } else {
+        console.log(`Owner added as member for club ID: ${clubId}`);
       }
+      
+      // Return success regardless of member addition
+      res.status(201).json({
+        success: true,
+        message: 'Club created successfully',
+        clubId: clubId
+      });
     });
   });
 });
@@ -223,6 +223,344 @@ router.get('/clubs/:club_id/events/:event_id', auth, (req, res) => {
     }
 
     res.json(event);
+  });
+});
+
+// Endpoint to list clubs for use in event creation dropdown
+router.get('/clubs', auth, (req, res) => {
+  const userId = req.user.id;
+  console.log(`Listing clubs for user ID: ${userId}`);
+  const query = 'SELECT id, name FROM clubs WHERE owner_id = ?';
+  db.all(query, [userId], (err, clubs) => {
+    if (err) {
+      console.error('Error fetching clubs for dropdown:', err);
+      return res.status(500).json({ success: false, message: 'Error fetching clubs.' });
+    }
+    res.json(clubs);
+  });
+});
+
+// Get all events for a club
+router.get('/clubs/:id/events', auth, (req, res) => {
+  const clubId = req.params.id;
+  console.log(`Club events request for club ID: ${clubId} by user ID: ${req.user ? req.user.id : 'unknown'}`);
+  
+  const query = 'SELECT * FROM events WHERE club_id = ?';
+  db.all(query, [clubId], (err, events) => {
+    if (err) {
+      console.error('Error fetching events for club:', err);
+      return res.status(500).json({ success: false, message: 'Error fetching events.' });
+    }
+    console.log(`Found ${events.length} events for club ID: ${clubId}`);
+    res.json(events);
+  });
+});
+
+// Debug endpoint to check token validation
+router.get('/debug-auth', auth, (req, res) => {
+  console.log('Debug auth endpoint called');
+  console.log('User in request:', req.user);
+  res.json({
+    success: true,
+    message: 'Your token is valid',
+    user: req.user
+  });
+});
+
+// Get all members of a club
+router.get('/clubs/:id/members', auth, (req, res) => {
+  const clubId = req.params.id;
+  console.log(`Club members request for club ID: ${clubId} by user ID: ${req.user.id}`);
+  
+  // Join the club_members and users tables to get member details
+  const query = `
+    SELECT cm.*, u.username, u.role as user_role 
+    FROM club_members cm
+    JOIN users u ON cm.user_id = u.id
+    WHERE cm.club_id = ?
+  `;
+  
+  db.all(query, [clubId], (err, members) => {
+    if (err) {
+      console.error('Error fetching members for club:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error fetching club members.' 
+      });
+    }
+    
+    console.log(`Found ${members.length} members for club ID: ${clubId}`);
+    res.json({
+      success: true,
+      members: members
+    });
+  });
+});
+
+// Check if current user is a member of a club
+router.get('/clubs/:id/membership', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  
+  console.log(`Membership check for club ID: ${clubId}, user ID: ${userId}`);
+  
+  const query = 'SELECT * FROM club_members WHERE club_id = ? AND user_id = ?';
+  db.get(query, [clubId, userId], (err, membership) => {
+    if (err) {
+      console.error('Error checking club membership:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error checking club membership.' 
+      });
+    }
+    
+    if (membership) {
+      console.log(`User ${userId} is a member of club ${clubId}`);
+      res.json({
+        success: true,
+        isMember: true,
+        membership: membership
+      });
+    } else {
+      console.log(`User ${userId} is NOT a member of club ${clubId}`);
+      res.json({
+        success: true,
+        isMember: false
+      });
+    }
+  });
+});
+
+// Join a club
+router.post('/clubs/:id/join', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  
+  console.log(`Join request for club ID: ${clubId} by user ID: ${userId}`);
+  
+  // First check if the club exists
+  db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
+    if (err) {
+      console.error('Error checking club existence:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error checking if club exists.' 
+      });
+    }
+    
+    if (!club) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Club not found.' 
+      });
+    }
+    
+    // Check if the user is already a member
+    db.get('SELECT * FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], (err, existingMembership) => {
+      if (err) {
+        console.error('Error checking existing membership:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error checking existing membership.' 
+        });
+      }
+      
+      if (existingMembership) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'User is already a member of this club.' 
+        });
+      }
+      
+      // Add user as a member
+      const query = 'INSERT INTO club_members (club_id, user_id, join_date, role) VALUES (?, ?, datetime("now"), "member")';
+      db.run(query, [clubId, userId], function(err) {
+        if (err) {
+          console.error('Error adding club membership:', err);
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Error adding club membership.' 
+          });
+        }
+        
+        console.log(`User ${userId} joined club ${clubId} successfully`);
+        res.status(201).json({ 
+          success: true, 
+          message: 'Successfully joined the club.',
+          membershipId: this.lastID
+        });
+      });
+    });
+  });
+});
+
+// Leave a club
+router.post('/clubs/:id/leave', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  
+  console.log(`Leave request for club ID: ${clubId} by user ID: ${userId}`);
+  
+  // Check if the user is the owner (owners can't leave their own clubs)
+  db.get('SELECT * FROM clubs WHERE id = ? AND owner_id = ?', [clubId, userId], (err, ownedClub) => {
+    if (err) {
+      console.error('Error checking club ownership:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error checking club ownership.' 
+      });
+    }
+    
+    if (ownedClub) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Club owners cannot leave their own clubs. Transfer ownership first or delete the club.' 
+      });
+    }
+    
+    // Check if the user is actually a member
+    db.get('SELECT * FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], (err, membership) => {
+      if (err) {
+        console.error('Error checking membership:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error checking membership.' 
+        });
+      }
+      
+      if (!membership) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'User is not a member of this club.' 
+        });
+      }
+      
+      // Remove the membership
+      db.run('DELETE FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], function(err) {
+        if (err) {
+          console.error('Error removing club membership:', err);
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Error removing club membership.' 
+          });
+        }
+        
+        console.log(`User ${userId} left club ${clubId} successfully`);
+        res.json({ 
+          success: true, 
+          message: 'Successfully left the club.' 
+        });
+      });
+    });
+  });
+});
+
+// Debugging endpoint to get all events (regardless of club)
+router.get('/all-events', auth, (req, res) => {
+  console.log('All events endpoint called by user ID:', req.user.id);
+  const query = 'SELECT * FROM events';
+  db.all(query, [], (err, events) => {
+    if (err) {
+      console.error('Error fetching all events:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching events'
+      });
+    }
+    console.log(`Found ${events.length} events`);
+    res.json(events);
+  });
+});
+
+// Get event by ID
+router.get('/events/:id', auth, (req, res) => {
+  const eventId = req.params.id;
+  console.log(`Event details request for event ID: ${eventId} by user ID: ${req.user.id}`);
+
+  const query = 'SELECT * FROM events WHERE id = ?';
+  db.get(query, [eventId], (err, event) => {
+    if (err) {
+      console.error('Error fetching event details:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error fetching event details.' 
+      });
+    }
+
+    if (!event) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Event not found.' 
+      });
+    }
+
+    res.json(event);
+  });
+});
+
+// Update event by ID
+router.put('/events/:id', auth, (req, res) => {
+  const eventId = req.params.id;
+  const { title, description } = req.body;
+  console.log(`Update request for event ID: ${eventId} by user ID: ${req.user.id}`);
+
+  if (!title || !description) {
+    return res.status(400).json({
+      success: false,
+      message: 'Title and description are required.'
+    });
+  }
+
+  const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
+  db.run(query, [title, description, eventId], function(err) {
+    if (err) {
+      console.error('Error updating event:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error updating event.'
+      });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found or no changes made.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Event updated successfully.'
+    });
+  });
+});
+
+// Delete event by ID
+router.delete('/events/:id', auth, (req, res) => {
+  const eventId = req.params.id;
+  console.log(`Delete request for event ID: ${eventId} by user ID: ${req.user.id}`);
+
+  const query = 'DELETE FROM events WHERE id = ?';
+  db.run(query, [eventId], function(err) {
+    if (err) {
+      console.error('Error deleting event:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error deleting event.'
+      });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Event deleted successfully.'
+    });
   });
 });
 

@@ -564,4 +564,274 @@ router.delete('/events/:id', auth, (req, res) => {
   });
 });
 
+// Update club by ID
+router.put('/clubs/:id', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  const { name, description, category } = req.body;
+  
+  console.log(`Update request for club ID: ${clubId} by user ID: ${userId}`);
+  
+  // Validate required fields
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      message: 'Club name is required.'
+    });
+  }
+  
+  // Check if user is the owner of the club
+  db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
+    if (err) {
+      console.error('Error checking club ownership:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking club ownership.'
+      });
+    }
+    
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: 'Club not found.'
+      });
+    }
+    
+    if (club.owner_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the club owner can update club details.'
+      });
+    }
+    
+    // Update club details
+    const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
+    db.run(query, [name, description, category, clubId], function(err) {
+      if (err) {
+        console.error('Error updating club:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error updating club.'
+        });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Club not found or no changes made.'
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Club updated successfully.'
+      });
+    });
+  });
+});
+
+// Alternative route definition that supports all HTTP methods for better compatibility
+router.all('/clubs/:id/update', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  
+  if (req.method !== 'POST' && req.method !== 'PUT') {
+    return res.status(405).json({
+      success: false,
+      message: 'Method not allowed. Use POST or PUT.'
+    });
+  }
+  
+  const { name, description, category } = req.body;
+  
+  console.log(`Alternative update route - Update request for club ID: ${clubId} by user ID: ${userId}`);
+  
+  // Validate required fields
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      message: 'Club name is required.'
+    });
+  }
+  
+  // Check if user is the owner of the club
+  db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
+    if (err) {
+      console.error('Error checking club ownership:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking club ownership.'
+      });
+    }
+    
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: 'Club not found.'
+      });
+    }
+    
+    if (club.owner_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the club owner can update club details.'
+      });
+    }
+    
+    // Update club details
+    const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
+    db.run(query, [name, description, category, clubId], function(err) {
+      if (err) {
+        console.error('Error updating club:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error updating club.'
+        });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Club not found or no changes made.'
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Club updated successfully.'
+      });
+    });
+  });
+});
+
+// Delete club
+router.delete('/clubs/:id', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  
+  console.log(`Delete request for club ID: ${clubId} by user ID: ${userId}`);
+  
+  // Check if user is the owner of the club
+  db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
+    if (err) {
+      console.error('Error checking club ownership:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking club ownership.'
+      });
+    }
+    
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: 'Club not found.'
+      });
+    }
+    
+    if (club.owner_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the club owner can delete this club.'
+      });
+    }
+    
+    // Delete club
+    db.run('DELETE FROM clubs WHERE id = ?', [clubId], function(err) {
+      if (err) {
+        console.error('Error deleting club:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error deleting club.'
+        });
+      }
+      
+      // Delete all related club members
+      db.run('DELETE FROM club_members WHERE club_id = ?', [clubId], function(err) {
+        if (err) {
+          console.error('Error deleting club members:', err);
+          // Continue with success response even if member deletion fails
+        }
+        
+        // Delete all related events
+        db.run('DELETE FROM events WHERE club_id = ?', [clubId], function(err) {
+          if (err) {
+            console.error('Error deleting club events:', err);
+            // Continue with success response even if event deletion fails
+          }
+          
+          res.json({
+            success: true,
+            message: 'Club deleted successfully.'
+          });
+        });
+      });
+    });
+  });
+});
+
+// Alternative route for club deletion that works with POST
+router.post('/clubs/:id/delete', auth, (req, res) => {
+  const clubId = req.params.id;
+  const userId = req.user.id;
+  
+  console.log(`Alternative delete route - Delete request for club ID: ${clubId} by user ID: ${userId}`);
+  
+  // Check if user is the owner of the club
+  db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
+    if (err) {
+      console.error('Error checking club ownership:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking club ownership.'
+      });
+    }
+    
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: 'Club not found.'
+      });
+    }
+    
+    if (club.owner_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the club owner can delete this club.'
+      });
+    }
+    
+    // Delete club
+    db.run('DELETE FROM clubs WHERE id = ?', [clubId], function(err) {
+      if (err) {
+        console.error('Error deleting club:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error deleting club.'
+        });
+      }
+      
+      // Delete all related club members
+      db.run('DELETE FROM club_members WHERE club_id = ?', [clubId], function(err) {
+        if (err) {
+          console.error('Error deleting club members:', err);
+          // Continue with success response even if member deletion fails
+        }
+        
+        // Delete all related events
+        db.run('DELETE FROM events WHERE club_id = ?', [clubId], function(err) {
+          if (err) {
+            console.error('Error deleting club events:', err);
+            // Continue with success response even if event deletion fails
+          }
+          
+          res.json({
+            success: true,
+            message: 'Club deleted successfully.'
+          });
+        });
+      });
+    });
+  });
+});
+
 module.exports = router;

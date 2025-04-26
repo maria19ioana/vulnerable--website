@@ -95,6 +95,107 @@ async function apiGet(endpoint, auth = false) {
     }
 }
 
+// Add apiPut helper function
+async function apiPut(endpoint, data, auth = false) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth) headers['Authorization'] = 'Bearer ' + getToken();
+
+  console.log(`Making API PUT request to: ${API_BASE_URL}${endpoint}`);
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+      mode: 'cors'
+    });
+
+    console.log(`Response status: ${res.status}`);
+
+    // Handle non-JSON responses
+    const contentType = res.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(responseData.message || `Server error (${res.status})`);
+      }
+      
+      return responseData;
+    } else {
+      // For non-JSON responses, get the text and create a fake response
+      const text = await res.text();
+      console.error(`Received non-JSON response (${res.status}):`, text.substring(0, 150));
+      
+      // If success (200-299), return a fabricated success response
+      if (res.ok) {
+        return { 
+          success: true,
+          message: 'Operation completed successfully'
+        };
+      }
+      
+      // Otherwise, throw an error with the HTML status message if possible
+      const errorMatch = text.match(/<pre>(.*?)<\/pre>/);
+      throw new Error(errorMatch ? errorMatch[1] : `Server returned ${res.status}`);
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+}
+
+// Add apiDelete helper function
+async function apiDelete(endpoint, auth = false) {
+  const headers = {};
+  if (auth) headers['Authorization'] = 'Bearer ' + getToken();
+
+  console.log(`Making API DELETE request to: ${API_BASE_URL}${endpoint}`);
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers,
+      mode: 'cors'
+    });
+
+    console.log(`Response status: ${res.status}`);
+
+    // Handle non-JSON responses
+    const contentType = res.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(responseData.message || `Server error (${res.status})`);
+      }
+      
+      return responseData;
+    } else {
+      // For non-JSON responses, get the text and create a fake response
+      const text = await res.text();
+      console.error(`Received non-JSON response (${res.status}):`, text.substring(0, 150));
+      
+      // If success (200-299), return a fabricated success response
+      if (res.ok) {
+        return { 
+          success: true,
+          message: 'Operation completed successfully'
+        };
+      }
+      
+      // Otherwise, throw an error with the HTML status message if possible
+      const errorMatch = text.match(/<pre>(.*?)<\/pre>/);
+      throw new Error(errorMatch ? errorMatch[1] : `Server returned ${res.status}`);
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+}
+
 // ========== AUTHENTICATION ==========
 function checkAuth() {
     const token = localStorage.getItem('token');
@@ -776,10 +877,10 @@ function loadClubDetails(clubId) {
       if (userId && club.owner_id === parseInt(userId)) {
         console.log('Current user is the club owner');
         document.getElementById('club-actions').innerHTML = `
-          <button class="btn btn-outline-primary me-2">
+          <button class="btn btn-outline-primary me-2" id="edit-club-btn">
             <i class="fas fa-edit"></i> Edit Club
           </button>
-          <button class="btn btn-outline-danger">
+          <button class="btn btn-outline-danger" id="delete-club-btn">
             <i class="fas fa-trash-alt"></i> Delete Club
           </button>
         `;
@@ -792,31 +893,8 @@ function loadClubDetails(clubId) {
         document.getElementById('create-event-btn').classList.remove('d-none');
       }
       
-      // Display club owner - since owner_name is missing in the API response, 
-      // use the current username if the user is the owner
-      const memberList = document.getElementById('member-list');
-      memberList.innerHTML = '';
-      
-      const ownerItem = document.createElement('li');
-      ownerItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-      
-      // If current user is owner, use their username, otherwise show "Club Owner"
-      const ownerName = (userId && club.owner_id === parseInt(userId)) ? username : 'Club Owner';
-      
-      ownerItem.innerHTML = `
-        <div>
-          <strong>${ownerName}</strong>
-          <span class="badge bg-primary ms-2">Owner</span>
-        </div>
-        <i class="fas fa-crown text-warning"></i>
-      `;
-      memberList.appendChild(ownerItem);
-      
-      // Add note about members
-      const memberNote = document.createElement('li');
-      memberNote.className = 'list-group-item text-center text-muted';
-      memberNote.innerHTML = 'Only showing the club owner. Full member list coming soon!';
-      memberList.appendChild(memberNote);
+      // Load club members
+      displayMembers(clubId);
       
       // Load events for this club
       loadClubEvents(clubId);
@@ -1040,12 +1118,6 @@ async function joinClub(clubId) {
   }
   
   try {
-    // Update UI to show loading
-    const joinBtn = document.getElementById('join-club-btn');
-    const originalBtnText = joinBtn.innerHTML;
-    joinBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Joining...';
-    joinBtn.disabled = true;
-    
     // Send join request
     const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/join`, {
       method: 'POST',
@@ -1062,33 +1134,23 @@ async function joinClub(clubId) {
       // Success - reload membership status
       await loadMembershipStatus(clubId);
       
-      // Also reload member list if we have that function
-      if (typeof getClubMembers === 'function') {
-        getClubMembers(clubId);
-      }
+      // Also reload member list 
+      displayMembers(clubId);
+      
+      return data;
     } else {
       // Error
-      joinBtn.innerHTML = originalBtnText;
-      joinBtn.disabled = false;
-      alert(`Error joining club: ${data.message || 'Unknown error'}`);
+      throw new Error(data.message || 'Unknown error');
     }
   } catch (error) {
     console.error('Error joining club:', error);
-    const joinBtn = document.getElementById('join-club-btn');
-    joinBtn.innerHTML = '<i class="fas fa-user-plus"></i> Join Club';
-    joinBtn.disabled = false;
-    alert(`Error joining club: ${error.message || 'Network error'}`);
+    throw error;
   }
 }
 
 // Leave a club
 async function leaveClub(clubId) {
   console.log(`Attempting to leave club ID: ${clubId}`);
-  
-  // Confirm first
-  if (!confirm('Are you sure you want to leave this club?')) {
-    return;
-  }
   
   // Check if user is logged in
   const token = localStorage.getItem('token');
@@ -1099,12 +1161,6 @@ async function leaveClub(clubId) {
   }
   
   try {
-    // Update UI to show loading
-    const leaveBtn = document.getElementById('leave-club-btn');
-    const originalBtnText = leaveBtn.innerHTML;
-    leaveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Leaving...';
-    leaveBtn.disabled = true;
-    
     // Send leave request
     const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/leave`, {
       method: 'POST',
@@ -1121,22 +1177,17 @@ async function leaveClub(clubId) {
       // Success - reload membership status
       await loadMembershipStatus(clubId);
       
-      // Also reload member list if we have that function
-      if (typeof getClubMembers === 'function') {
-        getClubMembers(clubId);
-      }
+      // Also reload member list
+      displayMembers(clubId);
+      
+      return data;
     } else {
       // Error
-      leaveBtn.innerHTML = originalBtnText;
-      leaveBtn.disabled = false;
-      alert(`Error leaving club: ${data.message || 'Unknown error'}`);
+      throw new Error(data.message || 'Unknown error');
     }
   } catch (error) {
     console.error('Error leaving club:', error);
-    const leaveBtn = document.getElementById('leave-club-btn');
-    leaveBtn.innerHTML = '<i class="fas fa-user-minus"></i> Leave Club';
-    leaveBtn.disabled = false;
-    alert(`Error leaving club: ${error.message || 'Network error'}`);
+    throw error;
   }
 }
 
@@ -1165,6 +1216,59 @@ async function getClubMembers(clubId) {
   } catch (error) {
     console.error('Error fetching club members:', error);
     return [];
+  }
+}
+
+// Display club members in the member list
+async function displayMembers(clubId) {
+  console.log(`Displaying members for club ID: ${clubId}`);
+  const memberList = document.getElementById('member-list');
+  
+  if (!memberList) {
+    console.error('Member list element not found');
+    return;
+  }
+  
+  try {
+    // Show loading state
+    memberList.innerHTML = '<li class="list-group-item text-center"><span class="spinner-border text-primary" role="status"></span> Loading members...</li>';
+    
+    // Get members from API
+    const members = await getClubMembers(clubId);
+    
+    if (!members || members.length === 0) {
+      memberList.innerHTML = `
+        <li class="list-group-item text-center">
+          <p class="text-muted">No members found</p>
+        </li>
+      `;
+      return;
+    }
+    
+    // Clear the list and add members
+    memberList.innerHTML = '';
+    
+    members.forEach(member => {
+      const memberItem = document.createElement('li');
+      memberItem.className = 'list-group-item member-item';
+      memberItem.innerHTML = `
+        <div class="member-name">
+          <i class="fas fa-user me-2 text-secondary"></i>
+          ${member.username || 'Unknown Member'}
+        </div>
+        <div class="member-role">
+          ${member.role === 'owner' ? '<span class="badge bg-primary">Owner</span>' : 'Member'}
+        </div>
+      `;
+      memberList.appendChild(memberItem);
+    });
+  } catch (error) {
+    console.error('Error displaying members:', error);
+    memberList.innerHTML = `
+      <li class="list-group-item text-center">
+        <p class="text-danger">Error loading members</p>
+      </li>
+    `;
   }
 }
 

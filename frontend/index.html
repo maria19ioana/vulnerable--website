@@ -4,139 +4,319 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClubConnect - Your Campus Community Hub</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
   <style>
-    .hero-section {
-      background-image: url('images/hero-bg.svg');
-      background-size: cover;
-      background-position: center;
-      min-height: 600px;
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background-color: #f8f9fa;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    .navbar {
+      padding: 0.5rem 1rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      background-color: white;
+    }
+    
+    .main-container {
+      flex: 1;
       display: flex;
       align-items: center;
-      margin-bottom: 0;
+      padding: 1rem;
     }
-    .feature-icon {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 1.5rem;
-    }
-    .service-item {
-      transition: transform 0.3s ease;
+    
+    .content-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
       background: white;
-      border-radius: 15px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .hero-section {
+      background-color: #FF1493;
+      background-image: linear-gradient(135deg, #FF1493 10%, #FF69B4 100%);
+      width: 55%;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
       overflow: hidden;
     }
-    .service-item:hover {
-      transform: translateY(-10px);
+    
+    .hero-content {
+      color: white;
+      position: relative;
+      z-index: 2;
     }
-    .features-section {
-      background: #f8f9fa;
-      padding: 80px 0;
+    
+    .hero-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
     }
-    .btn-primary {
-      background-color: #FF1493;
-      border-color: #FF1493;
+    
+    .hero-description {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
     }
-    .btn-primary:hover {
-      background-color: #FF69B4;
-      border-color: #FF69B4;
+    
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
     }
-    .btn-outline-light:hover {
+    
+    .btn {
+      padding: 0.6rem 1.5rem;
+      border-radius: 50px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-light {
+      background-color: white;
       color: #FF1493;
+      border: none;
     }
-    .navbar-brand {
+    
+    .btn-light:hover {
+      background-color: #f8f9fa;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .btn-outline-light {
+      border: 2px solid white;
+      color: white;
+    }
+    
+    .btn-outline-light:hover {
+      background-color: rgba(255,255,255,0.1);
+      transform: translateY(-3px);
+    }
+    
+    .features-section {
+      width: 45%;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .features-intro {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .features-intro h2 {
+      color: #343a40;
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .features-intro p {
+      color: #6c757d;
+      font-size: 0.95rem;
+    }
+    
+    .feature-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      transition: transform 0.3s ease;
+    }
+    
+    .feature-item:hover {
+      transform: translateX(5px);
+    }
+    
+    .feature-icon-wrapper {
+      background-color: rgba(255,20,147,0.1);
+      color: #FF1493;
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      color: #FF1493;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .navbar-brand img {
-      height: 40px;
-      width: auto;
+    
+    .feature-icon {
+      font-size: 1.2rem;
+    }
+    
+    .feature-content {
+      flex: 1;
+    }
+    
+    .feature-title {
+      color: #343a40;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .feature-text {
+      color: #6c757d;
+      font-size: 0.9rem;
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+    
+    .decorative-circles {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      z-index: 1;
+    }
+    
+    .circle-1 {
+      top: -100px;
+      right: -50px;
+    }
+    
+    .circle-2 {
+      bottom: -80px;
+      left: -100px;
+      width: 200px;
+      height: 200px;
+    }
+    
+    footer {
+      background-color: white;
+      color: #6c757d;
+      padding: 0.5rem 0;
+      text-align: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      border-top: 1px solid #f1f1f1;
+    }
+    
+    @media (max-width: 992px) {
+      .content-wrapper {
+        flex-direction: column;
+      }
+      .hero-section, .features-section {
+        width: 100%;
+      }
+      
+      html, body {
+        overflow-y: auto;
+      }
     }
   </style>
 </head>
 
 <body>
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+  <nav class="navbar navbar-expand-lg navbar-light">
     <div class="container">
       <a class="navbar-brand" href="index.html">
-        <img src="images/logo.svg" alt="ClubConnect" height="40">
-        ClubConnect
-  </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-  </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto" id="navbarLinks">
-          <!-- Dynamic navigation links will be inserted here -->
-    </ul>
-      </div>
-  </div>
-</nav>
-
-  <!-- Hero Section -->
-  <section class="hero-section text-white">
-    <div class="container text-center">
-      <h1 class="display-3 fw-bold mb-4">Your Campus Community Hub</h1>
-      <p class="lead mb-5 fs-4">Join clubs, create events, and connect with fellow students in one centralized platform.</p>
-      <div class="d-flex justify-content-center gap-3">
-        <a href="register.html" class="btn btn-light btn-lg px-5">Get Started</a>
-        <a href="login.html" class="btn btn-outline-light btn-lg px-5">Login</a>
+        <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
+      </a>
+      <div class="d-flex">
+        <a href="login.html" class="btn btn-sm btn-outline-primary me-2">Login</a>
+        <a href="register.html" class="btn btn-sm btn-primary">Sign Up</a>
       </div>
     </div>
-  </section>
+  </nav>
 
-  <!-- Features Section -->
-  <section class="features-section">
-  <div class="container py-5">
-      <div class="row g-4">
-        <!-- Join Clubs -->
-        <div class="col-md-4">
-          <div class="card service-item h-100 border-0 shadow-sm">
-            <div class="card-body text-center p-5">
-              <img src="images/join-clubs.svg" alt="Join Clubs" class="feature-icon">
-              <h5 class="card-title mb-3">Join Clubs</h5>
-              <p class="card-text text-muted">Discover and join student clubs that match your interests and passions.</p>
+  <div class="main-container">
+    <div class="content-wrapper">
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="decorative-circles circle-1"></div>
+        <div class="decorative-circles circle-2"></div>
+        
+        <div class="hero-content">
+          <h1 class="hero-title">Your Campus Community Hub</h1>
+          <p class="hero-description">Join clubs, create events, and connect with fellow students in one centralized platform.</p>
+          <div class="hero-buttons">
+            <a href="register.html" class="btn btn-light">Get Started</a>
+            <a href="login.html" class="btn btn-outline-light">Login</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section class="features-section">
+        <div class="features-intro">
+          <h2>Everything You Need</h2>
+          <p>Discover what makes ClubConnect the perfect platform for campus life.</p>
+        </div>
+        
+        <div class="feature-row">
+          <!-- Join Clubs -->
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <i class="fas fa-users feature-icon"></i>
+            </div>
+            <div class="feature-content">
+              <h5 class="feature-title">Join Clubs</h5>
+              <p class="feature-text">Discover and join student clubs that match your interests and passions.</p>
+            </div>
+          </div>
+          
+          <!-- Create Events -->
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <i class="fas fa-calendar-plus feature-icon"></i>
+            </div>
+            <div class="feature-content">
+              <h5 class="feature-title">Create Events</h5>
+              <p class="feature-text">Organize and manage club events with our easy-to-use tools.</p>
+            </div>
+          </div>
+          
+          <!-- Connect -->
+          <div class="feature-item">
+            <div class="feature-icon-wrapper">
+              <i class="fas fa-handshake feature-icon"></i>
+            </div>
+            <div class="feature-content">
+              <h5 class="feature-title">Connect</h5>
+              <p class="feature-text">Build your network and connect with fellow students across campus.</p>
             </div>
           </div>
         </div>
-        <!-- Create Events -->
-        <div class="col-md-4">
-          <div class="card service-item h-100 border-0 shadow-sm">
-            <div class="card-body text-center p-5">
-              <img src="images/create-events.svg" alt="Create Events" class="feature-icon">
-              <h5 class="card-title mb-3">Create Events</h5>
-              <p class="card-text text-muted">Organize and manage club events with our easy-to-use event creation tools.</p>
-            </div>
-          </div>
-        </div>
-        <!-- Connect -->
-        <div class="col-md-4">
-          <div class="card service-item h-100 border-0 shadow-sm">
-            <div class="card-body text-center p-5">
-              <img src="images/connect.svg" alt="Connect" class="feature-icon">
-              <h5 class="card-title mb-3">Connect</h5>
-              <p class="card-text text-muted">Build your network and connect with fellow students across campus.</p>
-            </div>
-          </div>
-        </div>
+      </section>
+    </div>
   </div>
-</div>
-  </section>
 
   <!-- Footer -->
-  <footer class="bg-dark text-white py-4">
-    <div class="container text-center">
-      <p class="mb-0">&copy; 2025 ClubConnect. All rights reserved.</p>
-  </div>
-</footer>
+  <footer>
+    <div class="container">
+      <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
+    </div>
+  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="scripts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="scripts.js"></script>
 </body>
 </html>

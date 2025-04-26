@@ -4,254 +4,342 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - ClubConnect</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="css/style.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
+    <style>
+        html, body {
+            height: 100%;
+            background-color: #f8f9fa;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar {
+            padding: 0.5rem 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: white;
+        }
+        
+        .navbar-brand {
+            color: #FF1493;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+        }
+        
+        .content-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .login-sidebar {
+            background-color: #FF1493;
+            background-image: linear-gradient(135deg, #FF1493 10%, #FF69B4 100%);
+            width: 45%;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .login-sidebar-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .login-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .login-description {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        
+        .decorative-circles {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            z-index: 1;
+        }
+        
+        .circle-1 {
+            top: -100px;
+            right: -50px;
+        }
+        
+        .circle-2 {
+            bottom: -80px;
+            left: -100px;
+            width: 200px;
+            height: 200px;
+        }
+        
+        .login-form-container {
+            width: 55%;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .login-form-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-form-header h2 {
+            color: #343a40;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-form-header p {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #343a40;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #e1e5eb;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: #FF1493;
+            box-shadow: 0 0 0 0.2rem rgba(255,20,147,0.1);
+        }
+        
+        .input-group-text {
+            background-color: rgba(255,20,147,0.1);
+            color: #FF1493;
+            border: 1px solid #e1e5eb;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: #FF1493;
+            border-color: #FF1493;
+        }
+        
+        .btn-primary:hover {
+            background-color: #FF69B4;
+            border-color: #FF69B4;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .auth-links {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .auth-links p {
+            margin-bottom: 0.5rem;
+            color: #6c757d;
+        }
+        
+        .auth-links a {
+            color: #FF1493;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        
+        footer {
+            background-color: white;
+            color: #6c757d;
+            padding: 0.5rem 0;
+            text-align: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            border-top: 1px solid #f1f1f1;
+        }
+        
+        @media (max-width: 992px) {
+            .content-wrapper {
+                flex-direction: column;
+            }
+            .login-sidebar, .login-form-container {
+                width: 100%;
+            }
+            .login-sidebar {
+                padding: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
             <a class="navbar-brand" href="index.html">
-                <img src="img/logo.png" alt="ClubConnect" height="40">
-                ClubConnect
+                <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto" id="navbarLinks">
-                    <!-- Dynamic navigation links will be inserted here -->
-                </ul>
+            <div class="d-flex">
+                <a href="login.html" class="btn btn-sm btn-outline-primary me-2">Login</a>
+                <a href="register.html" class="btn btn-sm btn-primary">Sign Up</a>
             </div>
         </div>
     </nav>
 
-    <!-- Login Form Section -->
-    <div class="auth-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6 col-lg-5">
-                    <div class="card auth-card">
-                        <div class="card-body p-4 p-md-5">
-                            <h2 class="text-center mb-4">Welcome Back</h2>
-                            <div id="login-message"></div>
-                            <form id="loginForm" class="needs-validation" novalidate>
-                                <div class="mb-4">
-        <label for="username" class="form-label">Username</label>
-                                    <input type="text" class="form-control" id="username" name="username" required>
-                                    <div class="invalid-feedback">
-                                        Please enter your username.
-                                    </div>
-      </div>
-                                <div class="mb-4">
-        <label for="password" class="form-label">Password</label>
-                                    <input type="password" class="form-control" id="password" name="password" required>
-                                    <div class="invalid-feedback">
-                                        Please enter your password.
-                                    </div>
-                                </div>
-                                <div class="mb-4 form-check">
-                                    <input type="checkbox" class="form-check-input" id="rememberMe">
-                                    <label class="form-check-label" for="rememberMe">Remember me</label>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
-                                <div class="text-center">
-                                    <p class="mb-0">Don't have an account? <a href="register.html">Sign up</a></p>
-                                    <a href="#" class="text-muted">Forgot password?</a>
-      </div>
-    </form>
-                            
-                            <!-- Connection status -->
-                            <div id="connection-status" class="mt-3 small">
-                                <div class="text-center">
-                                    <button id="test-connection" class="btn btn-sm btn-outline-secondary">Test Connection</button>
-                                    <button id="test-club-creation" class="btn btn-sm btn-outline-primary ms-2">Test Club Creation</button>
-                                    <div id="connection-result" class="mt-2 text-muted"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Main Container -->
+    <div class="main-container">
+        <div class="content-wrapper">
+            <!-- Login Sidebar -->
+            <div class="login-sidebar">
+                <div class="decorative-circles circle-1"></div>
+                <div class="decorative-circles circle-2"></div>
+                
+                <div class="login-sidebar-content">
+                    <h1 class="login-title">Welcome Back!</h1>
+                    <p class="login-description">Log in to your ClubConnect account to access your clubs, events, and connections.</p>
                 </div>
             </div>
-  </div>
-</div>
+
+            <!-- Login Form -->
+            <div class="login-form-container">
+                <div class="login-form-header">
+                    <h2>Account Login</h2>
+                    <p>Enter your credentials to continue</p>
+                </div>
+                
+                <div id="login-message"></div>
+                
+                <form id="loginForm" class="needs-validation" novalidate>
+                    <div class="form-group">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </button>
+                    
+                    <div class="auth-links">
+                        <p>Don't have an account? <a href="register.html">Sign up</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer>
         <div class="container">
-            <p class="mb-0">&copy; 2025 ClubConnect. All rights reserved.</p>
+            <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://kit.fontawesome.com/your-kit-code.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="scripts.js"></script>
-<script>
-        // Add connection test functionality
-        document.getElementById('test-connection').addEventListener('click', (e) => {
-    e.preventDefault();
-            const resultEl = document.getElementById('connection-result');
-            resultEl.textContent = 'Testing connection...';
-            resultEl.className = 'mt-2 text-muted';
-            
-            // Test server endpoint
-            const testXhr = new XMLHttpRequest();
-            testXhr.open('GET', `${API_BASE_URL}/test`, true);
-            
-            testXhr.onreadystatechange = function() {
-                if (testXhr.readyState === 4) {
-                    console.log(`Test XHR status: ${testXhr.status}`);
-                    console.log(`Test XHR response: ${testXhr.responseText}`);
-                    
-                    if (testXhr.status >= 200 && testXhr.status < 300) {
-                        resultEl.innerHTML = `✅ Server test endpoint: <span class="text-success">OK</span><br>`;
-                        
-                        // Then test login endpoint
-                        const loginXhr = new XMLHttpRequest();
-                        loginXhr.open('POST', `${API_BASE_URL}/test-login`, true);
-                        loginXhr.setRequestHeader('Content-Type', 'application/json');
-                        
-                        loginXhr.onreadystatechange = function() {
-                            if (loginXhr.readyState === 4) {
-                                console.log(`Login test XHR status: ${loginXhr.status}`);
-                                console.log(`Login test XHR response: ${loginXhr.responseText}`);
-                                
-                                if (loginXhr.status >= 200 && loginXhr.status < 300) {
-                                    resultEl.innerHTML += `✅ Login test: <span class="text-success">OK</span><br>`;
-                                    resultEl.innerHTML += `<div class="mt-2">All systems operational! You can now log in.</div>`;
-                                    resultEl.className = 'mt-2 text-success';
-                                } else {
-                                    resultEl.innerHTML += `❌ Login test: <span class="text-danger">FAILED (${loginXhr.status})</span><br>`;
-                                    resultEl.className = 'mt-2 text-warning';
-                                }
-                            }
-                        };
-                        
-                        loginXhr.onerror = function() {
-                            resultEl.innerHTML += `❌ Login test: <span class="text-danger">NETWORK ERROR</span><br>`;
-                            resultEl.className = 'mt-2 text-warning';
-                        };
-                        
-                        loginXhr.send(JSON.stringify({ username: 'test', password: 'test' }));
-                    } else {
-                        resultEl.innerHTML = `❌ Server test endpoint: <span class="text-danger">FAILED (${testXhr.status})</span><br>`;
-                        resultEl.className = 'mt-2 text-danger';
-                    }
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('loginForm');
+            const messageEl = document.getElementById('login-message');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    messageEl.innerHTML = '<div class="alert alert-danger">Please enter both username and password</div>';
+                    return;
                 }
-            };
-            
-            testXhr.onerror = function() {
-                console.error('Test XHR error');
-                resultEl.innerHTML = `❌ Server connection: <span class="text-danger">FAILED</span><br>Unable to connect to server`;
-                resultEl.className = 'mt-2 text-danger';
-            };
-            
-            testXhr.send();
+                
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
+                
+                try {
+                    const response = await apiPost('/login', { username, password });
+                    
+                    if (response && response.token) {
+                        saveToken(response.token);
+                        setEditPrivilege(password); // Only for demo purposes
+                        
+                        messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
+                        
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    } else {
+                        messageEl.innerHTML = '<div class="alert alert-danger">Login failed. Please check your credentials.</div>';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    messageEl.innerHTML = `<div class="alert alert-danger">${error.message || 'Login failed. Please try again.'}</div>`;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+            });
         });
-        
-        // Add club creation test functionality
-        document.getElementById('test-club-creation').addEventListener('click', (e) => {
-            e.preventDefault();
-            const resultEl = document.getElementById('connection-result');
-            resultEl.textContent = 'First checking if server is reachable...';
-            resultEl.className = 'mt-2 text-muted';
-            
-            // First check if the server is reachable
-            const testServerXhr = new XMLHttpRequest();
-            testServerXhr.open('GET', 'http://localhost:3000/test', true);
-            
-            testServerXhr.onreadystatechange = function() {
-                if (testServerXhr.readyState === 4) {
-                    console.log(`Server test status: ${testServerXhr.status}`);
-                    
-                    if (testServerXhr.status === 0) {
-                        resultEl.innerHTML = `❌ Server connection: <span class="text-danger">FAILED</span><br>
-                            <div class="mt-2">
-                                Server is not responding. Please check if your backend server is running at localhost:3000.<br>
-                                <code>cd backend && node server.js</code>
-                            </div>`;
-                        resultEl.className = 'mt-2 text-danger';
-                        return;
-                    }
-                    
-                    // If server is reachable, proceed with club creation test
-                    resultEl.textContent = 'Server is reachable! Testing club creation endpoint...';
-                    
-                    // Retrieve or generate a valid test token
-                    let token = localStorage.getItem('token');
-                    const createWithToken = (authToken) => {
-                        // Proceed to call the club creation endpoint with the given token
-                        const xhr2 = new XMLHttpRequest();
-                        xhr2.open('POST', 'http://localhost:3000/clubs/create', true);
-                        xhr2.setRequestHeader('Content-Type', 'application/json');
-                        xhr2.setRequestHeader('Authorization', 'Bearer ' + authToken);
-                        xhr2.onreadystatechange = function() {
-                            if (xhr2.readyState === 4) {
-                                console.log(`Club creation test - XHR status: ${xhr2.status}`);
-                                console.log(`Club creation test - XHR response: ${xhr2.responseText}`);
-                                if (xhr2.status >= 200 && xhr2.status < 300) {
-                                    resultEl.innerHTML = `✅ Club creation endpoint: <span class="text-success">SUCCESS</span><br>`;
-                                    resultEl.innerHTML += `<div class="mt-2">Response: ${xhr2.responseText}</div>`;
-                                    resultEl.className = 'mt-2 text-success';
-                                } else if (xhr2.status === 401) {
-                                    resultEl.innerHTML = `❌ Club creation endpoint: <span class="text-danger">UNAUTHORIZED (${xhr2.status})</span><br>`;
-                                    resultEl.innerHTML += `<div class="mt-2">Your login token might be invalid. Please try logging in again.</div>`;
-                                    resultEl.className = 'mt-2 text-danger';
-      } else {
-                                    resultEl.innerHTML = `❌ Club creation endpoint: <span class="text-danger">FAILED (${xhr2.status})</span><br>`;
-                                    resultEl.innerHTML += `<div class="mt-2">Error: ${xhr2.responseText}</div>`;
-                                    resultEl.className = 'mt-2 text-danger';
-                                }
-                            }
-                        };
-                        xhr2.onerror = function() {
-                            console.error('Club creation test - XHR error');
-                            resultEl.innerHTML = `❌ Club creation endpoint: <span class="text-danger">NETWORK ERROR</span><br>`;
-                            resultEl.innerHTML += `<div class="mt-2">Check console for details.</div>`;
-                            resultEl.className = 'mt-2 text-danger';
-                        };
-                        const testData = { name: 'Test Club ' + new Date().toISOString().slice(0,10), description: 'Test Description', category: 'Test Category' };
-                        console.log('Sending test club creation with data:', testData);
-                        xhr2.send(JSON.stringify(testData));
-                    };
-                    if (!token) {
-                        // Fetch a real test token
-                        resultEl.innerHTML = '⚠️ Fetching a valid test token...';
-                        fetch('http://localhost:3000/test-login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            console.log('Received test-login token:', data.token);
-                            resultEl.innerHTML += '<br>Using test-login token for creation.';
-                            createWithToken(data.token);
-                        })
-                        .catch(err => {
-                            console.error('Test-login request failed:', err);
-                            resultEl.innerHTML = `❌ Could not fetch test token: ${err.message}`;
-                            resultEl.className = 'mt-2 text-danger';
-                        });
-                    } else {
-                        createWithToken(token);
-                    }
-                }
-            };
-            
-            testServerXhr.onerror = function() {
-                console.error('Server test - XHR error');
-                resultEl.innerHTML = `❌ Server connection: <span class="text-danger">FAILED</span><br>
-                    <div class="mt-2">
-                        Cannot connect to the backend server.<br>
-                        Please make sure your backend server is running:<br>
-                        <code>cd backend && node server.js</code>
-                    </div>`;
-                resultEl.className = 'mt-2 text-danger';
-            };
-            
-            testServerXhr.send();
-  });
-</script>
+    </script>
 </body>
 </html>

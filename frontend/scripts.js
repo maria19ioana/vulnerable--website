@@ -481,7 +481,7 @@ if (createClubForm) {
             };
             
             console.log('Request options:', {
-                url: 'http://localhost:3000/clubs/create',
+                url: 'http://localhost:3000/clubs',
                 method: requestOptions.method,
                 headers: {
                     ...requestOptions.headers,
@@ -490,7 +490,7 @@ if (createClubForm) {
                 body: requestOptions.body
             });
             
-            const response = await fetch('http://localhost:3000/clubs/create', requestOptions);
+            const response = await fetch('http://localhost:3000/clubs', requestOptions);
             
             console.log('Response status:', response.status);
             
@@ -608,7 +608,6 @@ function loadClubs() {
                         
                         // Handle both old and new API response formats
                         const clubs = response.success ? response.clubs : response;
-                        const totalEvents = response.totalEvents || 0;
                         
                         // Store the latest clubs data in localStorage
                         localStorage.setItem('dashboardClubs', JSON.stringify(clubs));
@@ -616,10 +615,8 @@ function loadClubs() {
                         // Update clubs count
                         clubsCountEl.textContent = clubs.length;
                         
-                        // Update events count if the element exists
-                        if (eventsCountEl) {
-                            eventsCountEl.textContent = totalEvents;
-                        }
+                        // Load user's clubs and events
+                        loadUserClubsAndEvents();
                         
                         // Update activity list if it exists
                         if (activityListEl) {
@@ -673,6 +670,85 @@ function loadClubs() {
         };
         
         xhr.send();
+    }
+}
+
+// Function to load user's clubs and events
+async function loadUserClubsAndEvents() {
+    const eventsCountEl = document.getElementById('events-count');
+    if (!eventsCountEl) return;
+    
+    try {
+        console.log('Loading user club memberships and events...');
+        
+        // Get the clubs the user is a member of
+        const memberClubs = await getUserClubMemberships();
+        console.log('User is a member of these clubs:', memberClubs);
+        
+        if (!memberClubs.length) {
+            eventsCountEl.textContent = '0';
+            return;
+        }
+        
+        // Fetch events from each club and combine them
+        let allEvents = [];
+        for (const club of memberClubs) {
+            try {
+                const events = await apiGet(`/clubs/${club.club_id}/events`, true);
+                if (events && events.length) {
+                    // Add club information to each event
+                    events.forEach(event => {
+                        event.clubName = club.name;
+                        event.clubId = club.club_id;
+                    });
+                    allEvents = [...allEvents, ...events];
+                }
+            } catch (error) {
+                console.error(`Error fetching events for club ${club.club_id}:`, error);
+            }
+        }
+        
+        console.log('All user events:', allEvents);
+        
+        // Update the events count in the UI
+        eventsCountEl.textContent = allEvents.length.toString();
+        
+    } catch (error) {
+        console.error('Error loading user clubs and events:', error);
+        eventsCountEl.textContent = '0';
+    }
+}
+
+// Function to get all clubs the user is a member of
+async function getUserClubMemberships() {
+    try {
+        // First get the list of all clubs to fetch their names
+        const allClubsResponse = await apiGet('/clubs', true);
+        const allClubs = allClubsResponse || [];
+        
+        // Get all club memberships for the current user
+        const memberships = [];
+        
+        // Make requests to each club to check membership
+        for (const club of allClubs) {
+            try {
+                const membershipCheck = await apiGet(`/clubs/${club.id}/membership`, true);
+                if (membershipCheck && membershipCheck.isMember) {
+                    memberships.push({
+                        club_id: club.id,
+                        name: club.name,
+                        role: membershipCheck.membership ? membershipCheck.membership.role : 'member'
+                    });
+                }
+            } catch (error) {
+                console.error(`Error checking membership for club ${club.id}:`, error);
+            }
+        }
+        
+        return memberships;
+    } catch (error) {
+        console.error('Error getting user club memberships:', error);
+        return [];
     }
 }
 

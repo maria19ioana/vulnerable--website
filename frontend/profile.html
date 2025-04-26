@@ -5,138 +5,478 @@
   <title>Profile - ClubConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
-
-  <!-- Stylesheets -->
-  <link href="css/bootstrap.min.css" rel="stylesheet" />
-  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
+  <style>
+    html, body {
+      height: 100%;
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    .navbar {
+      padding: 0.5rem 1rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      background-color: white;
+    }
+    
+    .navbar-brand {
+      color: #FF1493;
+    }
+    
+    .btn {
+      transition: all 0.3s ease;
+      border-radius: 50px;
+      font-weight: 500;
+    }
+    
+    .btn-sm {
+      padding: 0.4rem 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .btn-outline-primary {
+      color: #FF1493;
+      border-color: #FF1493;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-primary:hover, .btn-outline-primary.active {
+      background-color: rgba(255,20,147,0.1);
+      color: #FF1493;
+      border-color: #FF1493;
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary {
+      background-color: #FF1493;
+      border-color: #FF1493;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background-color: #FF69B4;
+      border-color: #FF69B4;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255,20,147,0.2);
+    }
+    
+    .main-container {
+      flex: 1;
+      padding: 2rem 1rem;
+    }
+    
+    .card {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    
+    .sidebar-card {
+      background-color: white;
+    }
+    
+    .profile-header {
+      background-color: #FF1493;
+      background-image: linear-gradient(135deg, #FF1493 10%, #FF69B4 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 15px;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .decorative-circles {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      z-index: 1;
+    }
+    
+    .circle-1 {
+      width: 200px;
+      height: 200px;
+      top: -100px;
+      right: -50px;
+    }
+    
+    .circle-2 {
+      width: 150px;
+      height: 150px;
+      bottom: -50px;
+      left: -50px;
+    }
+    
+    .profile-header-content {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .card-header {
+      background-color: white;
+      border-bottom: 1px solid #f1f1f1;
+      padding: 1.25rem;
+    }
+    
+    .form-control {
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      border: 1px solid #e1e5eb;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      border-color: #FF1493;
+      box-shadow: 0 0 0 0.2rem rgba(255,20,147,0.1);
+    }
+    
+    .text-primary {
+      color: #FF1493 !important;
+    }
+    
+    .bg-primary {
+      background-color: #FF1493 !important;
+    }
+    
+    .nav-link {
+      color: #6c757d;
+      transition: all 0.3s ease;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.3rem;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+      color: #FF1493;
+      background-color: rgba(255,20,147,0.1);
+    }
+    
+    .btn-square {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    footer {
+      background-color: white;
+      color: #6c757d;
+      padding: 1rem 0;
+      text-align: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      border-top: 1px solid #f1f1f1;
+      margin-top: auto;
+    }
+    
+    @media (max-width: 992px) {
+      .sidebar {
+        margin-bottom: 2rem;
+      }
+    }
+  </style>
 </head>
 
-<body class="bg-light">
-<!-- Navbar Start -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
-  <a href="index.html" class="navbar-brand p-0">
-    <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
-  </a>
-  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-    <span class="fa fa-bars"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarCollapse">
-    <ul id="navbarLinks" class="navbar-nav ms-auto py-0">
-      <!-- Links inserted dynamically -->
-    </ul>
+<body>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">
+      <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
+    </a>
+    <div class="d-flex">
+      <a href="#" id="logoutBtn" class="btn btn-sm btn-primary">Logout</a>
+    </div>
   </div>
 </nav>
-<!-- Navbar End -->
 
-<!-- Profile Content Start -->
-<div class="container py-5">
-  <div class="row">
-    <!-- Sidebar Start -->
-    <div class="col-lg-3">
-      <div class="card shadow-sm border-0 rounded-lg mb-4">
-        <div class="card-body">
-          <div class="d-flex align-items-center mb-4">
-            <div class="btn-square bg-primary rounded-circle me-3">
-              <i class="fas fa-user text-white"></i>
-            </div>
-            <h5 class="mb-0" id="username-display">Username</h5>
-          </div>
-          <ul class="nav flex-column">
-            <li class="nav-item">
-              <a class="nav-link" href="dashboard.html">
-                <i class="fas fa-home me-2"></i>Dashboard
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link active text-primary" href="profile.html">
-                <i class="fas fa-user me-2"></i>Profile
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="create-club.html">
-                <i class="fas fa-plus me-2"></i>Create Club
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="create-event.html">
-                <i class="fas fa-calendar-plus me-2"></i>Create Event
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="logoutBtn">
-                <i class="fas fa-sign-out-alt me-2"></i>Logout
-              </a>
-            </li>
-          </ul>
-        </div>
+<!-- Main Container -->
+<div class="main-container">
+  <div class="container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <div class="decorative-circles circle-1"></div>
+      <div class="decorative-circles circle-2"></div>
+      
+      <div class="profile-header-content">
+        <h2 class="mb-2">Your Profile</h2>
+        <p class="mb-0">Manage your account information and password.</p>
       </div>
     </div>
-    <!-- Sidebar End -->
-
-    <!-- Main Content Start -->
-    <div class="col-lg-9">
-      <!-- Profile Card -->
-      <div class="card shadow-sm border-0 rounded-lg mb-4">
-        <div class="card-body p-4">
-          <h4 class="text-primary mb-4">Profile Information</h4>
-          <form id="profileForm">
+    
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-lg-3">
+        <div class="card sidebar-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-4">
+              <div class="btn-square bg-primary rounded-circle me-3">
+                <i class="fas fa-user text-white"></i>
+              </div>
+              <h5 class="mb-0" id="username-display">Username</h5>
+            </div>
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="dashboard.html">
+                  <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="profile.html">
+                  <i class="fas fa-user me-2"></i>Profile
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="create-club.html">
+                  <i class="fas fa-plus me-2"></i>Create Club
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="create-event.html">
+                  <i class="fas fa-calendar-plus me-2"></i>Create Event
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#" id="logoutBtn">
+                  <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Content -->
+      <div class="col-lg-9">
+        <!-- Account Information Card -->
+        <div class="card mb-4">
+          <div class="card-body p-4">
+            <h4 class="text-primary mb-4">Account Information</h4>
             <div class="row">
               <div class="col-md-6 mb-4">
                 <label for="username" class="form-label">Username</label>
                 <input type="text" class="form-control" id="username" readonly>
-              </div>
-              <div class="col-md-6 mb-4">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" required>
-              </div>
-              <div class="col-md-6 mb-4">
-                <label for="currentPassword" class="form-label">Current Password</label>
-                <input type="password" class="form-control" id="currentPassword">
-              </div>
-              <div class="col-md-6 mb-4">
-                <label for="newPassword" class="form-label">New Password</label>
-                <input type="password" class="form-control" id="newPassword">
+                <small class="text-muted">Username cannot be changed</small>
               </div>
             </div>
-            <div id="profile-message"></div>
-            <button type="submit" class="btn btn-primary">Update Profile</button>
-          </form>
+          </div>
         </div>
-      </div>
 
-      <!-- My Clubs -->
-      <div class="card shadow-sm border-0 rounded-lg">
-        <div class="card-body p-4">
-          <h4 class="text-primary mb-4">My Clubs</h4>
-          <div id="clubs-list" class="row g-4">
-            <!-- Club cards will be inserted here -->
+        <!-- Update Email Card -->
+        <div class="card mb-4">
+          <div class="card-body p-4">
+            <h4 class="text-primary mb-4">Update Email</h4>
+            <form id="emailForm">
+              <div class="row">
+                <div class="col-md-12 mb-4">
+                  <label for="email" class="form-label">Email Address</label>
+                  <input type="email" class="form-control" id="email" required>
+                </div>
+                <div class="col-md-12 mb-4">
+                  <label for="emailPassword" class="form-label">Current Password</label>
+                  <input type="password" class="form-control" id="emailPassword" required>
+                  <small class="text-muted">Confirm your identity by entering your current password</small>
+                </div>
+              </div>
+              <div id="email-message"></div>
+              <button type="submit" class="btn btn-primary">Update Email</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Change Password Card -->
+        <div class="card">
+          <div class="card-body p-4">
+            <h4 class="text-primary mb-4">Change Password</h4>
+            <form id="passwordForm">
+              <div class="row">
+                <div class="col-md-12 mb-4">
+                  <label for="currentPassword" class="form-label">Current Password</label>
+                  <input type="password" class="form-control" id="currentPassword" required>
+                </div>
+                <div class="col-md-12 mb-4">
+                  <label for="newPassword" class="form-label">New Password</label>
+                  <input type="password" class="form-control" id="newPassword" required>
+                </div>
+                <div class="col-md-12 mb-4">
+                  <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                  <input type="password" class="form-control" id="confirmPassword" required>
+                </div>
+              </div>
+              <div id="password-message"></div>
+              <button type="submit" class="btn btn-primary">Update Password</button>
+            </form>
           </div>
         </div>
       </div>
     </div>
-    <!-- Main Content End -->
   </div>
 </div>
-<!-- Profile Content End -->
 
-<!-- Footer Start -->
-<footer class="container-fluid bg-dark text-white text-center py-4">
+<!-- Footer -->
+<footer>
   <div class="container">
     <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
   </div>
 </footer>
-<!-- Footer End -->
 
 <!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="scripts.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Display username on page load
+    const usernameField = document.getElementById('username');
+    const usernameDisplay = document.getElementById('username-display');
+    const emailField = document.getElementById('email');
+    
+    // Load user data
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Display username from token
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        try {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          if (payload.username) {
+            usernameField.value = payload.username;
+            usernameDisplay.textContent = payload.username;
+          }
+        } catch (e) {
+          console.error('Error parsing token:', e);
+        }
+      }
+      
+      // Fetch user profile data including email
+      fetchUserProfile();
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+    
+    // Handle email update form submission
+    const emailForm = document.getElementById('emailForm');
+    const emailMessage = document.getElementById('email-message');
+    
+    emailForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      emailMessage.innerHTML = '';
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('emailPassword').value;
+      
+      if (!email || !password) {
+        emailMessage.innerHTML = '<div class="alert alert-danger">All fields are required</div>';
+        return;
+      }
+      
+      const submitBtn = emailForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+      
+      try {
+        // Make API call to update email
+        const response = await apiPost('/update-email', { email, password }, true);
+        
+        if (response && response.success) {
+          emailMessage.innerHTML = '<div class="alert alert-success">Email updated successfully!</div>';
+          // Clear password field but keep email visible
+          document.getElementById('emailPassword').value = '';
+        } else {
+          emailMessage.innerHTML = `<div class="alert alert-danger">${response?.message || 'Failed to update email. Please check your password.'}</div>`;
+        }
+      } catch (error) {
+        console.error('Update email error:', error);
+        emailMessage.innerHTML = `<div class="alert alert-danger">${error.message || 'An error occurred. Please try again.'}</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
+    });
+    
+    // Handle password change form submission
+    const passwordForm = document.getElementById('passwordForm');
+    const passwordMessage = document.getElementById('password-message');
+    
+    passwordForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      passwordMessage.innerHTML = '';
+      
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        passwordMessage.innerHTML = '<div class="alert alert-danger">All fields are required</div>';
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        passwordMessage.innerHTML = '<div class="alert alert-danger">New passwords do not match</div>';
+        return;
+      }
+      
+      const submitBtn = passwordForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+      
+      try {
+        // Make API call to update password
+        const response = await apiPost('/update-password', { 
+          currentPassword, 
+          newPassword 
+        }, true);
+        
+        if (response && response.success) {
+          passwordMessage.innerHTML = '<div class="alert alert-success">Password updated successfully!</div>';
+          // Clear all password fields
+          document.getElementById('currentPassword').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('confirmPassword').value = '';
+        } else {
+          passwordMessage.innerHTML = `<div class="alert alert-danger">${response?.message || 'Failed to update password. Please check your current password.'}</div>`;
+        }
+      } catch (error) {
+        console.error('Update password error:', error);
+        passwordMessage.innerHTML = `<div class="alert alert-danger">${error.message || 'An error occurred. Please try again.'}</div>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
+    });
+    
+    // Fetch user profile data from the server
+    async function fetchUserProfile() {
+      try {
+        const response = await apiGet('/profile', true);
+        if (response && response.email) {
+          emailField.value = response.email;
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    }
+  });
+</script>
 </body>
 </html>

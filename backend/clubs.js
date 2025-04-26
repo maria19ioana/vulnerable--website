@@ -76,7 +76,7 @@ router.get('/clubs/:club_id/events/view/:enc_event_id', auth, (req, res) => {
 
 router.post('/clubs', auth, (req, res) => {
   console.log('Create club request received');
-  const { name, description, location, category } = req.body;
+  const { name, description, category } = req.body;
   
   if (!name) {
     console.log('Error: Club name is required');
@@ -84,10 +84,10 @@ router.post('/clubs', auth, (req, res) => {
   }
   
   const ownerId = req.user.id;
-  const query = `INSERT INTO clubs (name, description, location, category, owner_id, created_at)
-                 VALUES (?, ?, ?, ?, ?, datetime('now'))`;
+  const query = `INSERT INTO clubs (name, description, category, owner_id)
+                 VALUES (?, ?, ?, ?)`;
                  
-  db.run(query, [name, description, location, category, ownerId], function(err) {
+  db.run(query, [name, description, category, ownerId], function(err) {
     if (err) {
       console.error('Error creating club:', err);
       return res.status(500).json({ success: false, message: 'Error creating club' });

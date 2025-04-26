@@ -1,86 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register - ClubConnect</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
-
-  <!-- Stylesheets -->
-  <link href="css/bootstrap.min.css" rel="stylesheet" />
-  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
+  <style>
+    html, body {
+      height: 100%;
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .navbar {
+      padding: 0.5rem 1rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      background-color: white;
+    }
+    
+    .navbar-brand {
+      color: #FF1493;
+    }
+    
+    .main-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+    }
+    
+    .content-wrapper {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .register-sidebar {
+      background-color: #FF1493;
+      background-image: linear-gradient(135deg, #FF1493 10%, #FF69B4 100%);
+      width: 45%;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      color: white;
+    }
+    
+    .register-sidebar-content {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .register-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+    }
+    
+    .register-description {
+      font-size: 1rem;
+      opacity: 0.9;
+      margin-bottom: 0;
+    }
+    
+    .decorative-circles {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      z-index: 1;
+    }
+    
+    .circle-1 {
+      top: -100px;
+      right: -50px;
+    }
+    
+    .circle-2 {
+      bottom: -80px;
+      left: -100px;
+      width: 200px;
+      height: 200px;
+    }
+    
+    .register-form-container {
+      width: 55%;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .register-form-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .register-form-header h2 {
+      color: #343a40;
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .register-form-header p {
+      color: #6c757d;
+      font-size: 0.95rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+      font-weight: 500;
+      color: #343a40;
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #e1e5eb;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      border-color: #FF1493;
+      box-shadow: 0 0 0 0.2rem rgba(255,20,147,0.1);
+    }
+    
+    .input-group-text {
+      background-color: rgba(255,20,147,0.1);
+      color: #FF1493;
+      border: 1px solid #e1e5eb;
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+    }
+    
+    .btn {
+      padding: 0.6rem 1.5rem;
+      border-radius: 50px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+      background-color: #FF1493;
+      border-color: #FF1493;
+    }
+    
+    .btn-primary:hover {
+      background-color: #FF69B4;
+      border-color: #FF69B4;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .auth-links {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .auth-links p {
+      margin-bottom: 0.5rem;
+      color: #6c757d;
+    }
+    
+    .auth-links a {
+      color: #FF1493;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .auth-links a:hover {
+      text-decoration: underline;
+    }
+    
+    footer {
+      background-color: white;
+      color: #6c757d;
+      padding: 0.5rem 0;
+      text-align: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      border-top: 1px solid #f1f1f1;
+    }
+    
+    @media (max-width: 992px) {
+      .content-wrapper {
+        flex-direction: column;
+      }
+      .register-sidebar, .register-form-container {
+        width: 100%;
+      }
+      .register-sidebar {
+        padding: 2rem;
+      }
+    }
+  </style>
 </head>
-
-<body class="bg-light">
-<!-- Navbar Start -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
-  <a href="index.html" class="navbar-brand p-0">
-    <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
-  </a>
-  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-    <span class="fa fa-bars"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarCollapse">
-    <ul id="navbarLinks" class="navbar-nav ms-auto py-0">
-      <!-- Links inserted dynamically -->
-    </ul>
-  </div>
-</nav>
-<!-- Navbar End -->
-
-<!-- Register Form Start -->
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8">
-      <div class="card shadow-sm border-0 rounded-lg">
-        <div class="card-body p-5">
-          <h2 class="text-center text-primary mb-4">Create Account</h2>
-    <form id="registerForm">
-            <div class="mb-4">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="username" required>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
+      </a>
+      <div class="d-flex">
+        <a href="login.html" class="btn btn-sm btn-outline-primary me-2">Login</a>
+        <a href="register.html" class="btn btn-sm btn-primary">Sign Up</a>
       </div>
-            <div class="mb-4">
-              <label for="email" class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" required>
-            </div>
-            <div class="mb-4">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" required>
-      </div>
-            <div class="mb-4">
-              <label for="confirmPassword" class="form-label">Confirm Password</label>
-              <input type="password" class="form-control" id="confirmPassword" required>
-            </div>
-            <div id="register-message"></div>
-            <button type="submit" class="btn btn-primary w-100 py-3 mb-4">Register</button>
-            <p class="text-center mb-0">Already have an account? <a href="login.html" class="text-primary">Login here</a></p>
-    </form>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <div class="content-wrapper">
+      <!-- Register Sidebar -->
+      <div class="register-sidebar">
+        <div class="decorative-circles circle-1"></div>
+        <div class="decorative-circles circle-2"></div>
+        
+        <div class="register-sidebar-content">
+          <h1 class="register-title">Join ClubConnect</h1>
+          <p class="register-description">Create your account to start connecting with clubs, organizing events, and building your campus network.</p>
         </div>
+      </div>
+
+      <!-- Register Form -->
+      <div class="register-form-container">
+        <div class="register-form-header">
+          <h2>Create Account</h2>
+          <p>Fill in your details to get started</p>
+        </div>
+        
+        <div id="register-message"></div>
+        
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="username" class="form-label">Username</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-user"></i></span>
+              <input type="text" class="form-control" id="username" placeholder="Choose a username" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="email" class="form-label">Email</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+              <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-lock"></i></span>
+              <input type="password" class="form-control" id="password" placeholder="Create a password" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-lock"></i></span>
+              <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm your password" required>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-user-plus me-2"></i>Create Account
+          </button>
+          
+          <div class="auth-links">
+            <p>Already have an account? <a href="login.html">Log in</a></p>
+          </div>
+        </form>
       </div>
     </div>
   </div>
-</div>
-<!-- Register Form End -->
 
-<!-- Footer Start -->
-<footer class="container-fluid bg-dark text-white text-center py-4">
-  <div class="container">
-    <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
-  </div>
-</footer>
-<!-- Footer End -->
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
+    </div>
+  </footer>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="scripts.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="scripts.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('registerForm');
+      const messageEl = document.getElementById('register-message');
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (!username || !email || !password || !confirmPassword) {
+          messageEl.innerHTML = '<div class="alert alert-danger">Please fill in all fields</div>';
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          messageEl.innerHTML = '<div class="alert alert-danger">Passwords do not match</div>';
+          return;
+        }
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating Account...';
+        
+        try {
+          const response = await apiPost('/register', { username, email, password });
+          
+          if (response && response.success) {
+            messageEl.innerHTML = '<div class="alert alert-success">Account created successfully! Redirecting to login...</div>';
+            
+            setTimeout(() => {
+              window.location.href = 'login.html';
+            }, 1000);
+          } else {
+            messageEl.innerHTML = `<div class="alert alert-danger">${response.message || 'Registration failed. Please try again.'}</div>`;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+          }
+        } catch (error) {
+          console.error('Registration error:', error);
+          messageEl.innerHTML = `<div class="alert alert-danger">${error.message || 'Registration failed. Please try again.'}</div>`;
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+        }
+      });
+    });
+  </script>
 </body>
 </html>

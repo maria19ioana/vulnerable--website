@@ -307,13 +307,23 @@
         <div class="card">
           <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <h5 class="text-primary mb-0">Recent Activity</h5>
+              <div class="search-container" style="flex-grow: 1; margin-right: 15px;">
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0">
+                    <i class="fas fa-search text-primary"></i>
+                  </span>
+                  <input type="text" id="club-search" class="form-control border-start-0" placeholder="Search your clubs..." aria-label="Search clubs">
+                </div>
+              </div>
               <button id="refresh-dashboard" class="btn btn-sm btn-outline-primary">
                 <i class="fas fa-sync-alt me-1"></i> Refresh
               </button>
             </div>
             <div id="activity-list">
               <!-- Activity items will be inserted here -->
+            </div>
+            <div id="no-results" class="text-center py-4 d-none">
+              <p class="text-muted mb-0">No clubs match your search</p>
             </div>
           </div>
         </div>
@@ -332,5 +342,130 @@
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="scripts.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Setup club search functionality
+    const searchInput = document.getElementById('club-search');
+    const activityList = document.getElementById('activity-list');
+    const noResults = document.getElementById('no-results');
+    
+    async function performSearch() {
+      console.log('Performing server-side search...');
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      
+      if (searchTerm === '') {
+        // If search is empty, load all clubs
+        loadClubs();
+        return;
+      }
+      
+      try {
+        // Show loading state
+        activityList.innerHTML = `
+          <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Searching clubs...</p>
+          </div>
+        `;
+        
+        // Use the server-side search endpoint
+        const response = await fetch(`http://localhost:3000/search?query=${encodeURIComponent(searchTerm)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + getToken()
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const clubs = await response.json();
+        console.log('Search results:', clubs);
+        
+        // Display search results
+        if (clubs && clubs.length > 0) {
+          noResults.classList.add('d-none');
+          
+          let clubsHtml = '';
+          clubs.forEach(club => {
+            clubsHtml += `
+            <div class="d-flex align-items-center border-bottom py-3">
+                <div class="btn-square bg-primary rounded-circle me-3">
+                    <i class="fas fa-users text-white"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${club.name}</h6>
+                    <small>You are the owner of this club</small>
+                    ${club.eventCount ? `<small class="d-block text-muted">${club.eventCount} event(s)</small>` : ''}
+                </div>
+                <a href="club.html?id=${club.id}" class="btn btn-sm btn-outline-primary">View</a>
+            </div>
+            `;
+          });
+          
+          activityList.innerHTML = clubsHtml;
+        } else {
+          // No results found
+          noResults.classList.remove('d-none');
+          activityList.innerHTML = '';
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        activityList.innerHTML = `
+          <div class="alert alert-danger">
+            Error searching clubs: ${error.message}
+          </div>
+        `;
+      }
+    }
+    
+    if (searchInput) {
+      // Add a search button next to the input or modify existing one
+      const searchContainer = document.querySelector('.search-container .input-group');
+      let searchButton;
+      
+      // Find existing button or create a new one
+      searchButton = searchContainer?.querySelector('button');
+      if (!searchButton && searchContainer) {
+        searchButton = document.createElement('button');
+        searchButton.className = 'btn btn-primary';
+        searchButton.type = 'button';
+        searchButton.innerHTML = '<i class="fas fa-search"></i>';
+        searchContainer.appendChild(searchButton);
+      }
+      
+      if (searchButton) {
+        // Remove existing event listeners
+        searchButton.replaceWith(searchButton.cloneNode(true));
+        searchButton = searchContainer.querySelector('button');
+        
+        // Add new event listener
+        searchButton.addEventListener('click', performSearch);
+      }
+      
+      // Search when Enter key is pressed
+      searchInput.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+    }
+    
+    // Add refresh button functionality
+    const refreshButton = document.getElementById('refresh-dashboard');
+    if (refreshButton) {
+      refreshButton.addEventListener('click', function() {
+        loadClubs();
+        // Clear search input when refreshing
+        if (searchInput) searchInput.value = '';
+        // Hide no results message
+        if (noResults) noResults.classList.add('d-none');
+      });
+    }
+  });
+</script>
 </body>
 </html>

@@ -4,155 +4,443 @@
   <meta charset="UTF-8">
   <title>Club Details - ClubConnect</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Stylesheets -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
   <style>
+    html, body {
+      height: 100%;
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    .navbar {
+      padding: 0.5rem 1rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      background-color: white;
+    }
+    
+    .navbar-brand {
+      color: #FF1493;
+    }
+    
+    .btn {
+      transition: all 0.3s ease;
+      border-radius: 50px;
+      font-weight: 500;
+    }
+    
+    .btn-sm {
+      padding: 0.4rem 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .btn-outline-primary {
+      color: #FF1493;
+      border-color: #FF1493;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-primary:hover, .btn-outline-primary.active {
+      background-color: rgba(255,20,147,0.1);
+      color: #FF1493;
+      border-color: #FF1493;
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary {
+      background-color: #FF1493;
+      border-color: #FF1493;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background-color: #FF69B4;
+      border-color: #FF69B4;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255,20,147,0.2);
+    }
+    
+    .btn-outline-danger {
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(220,53,69,0.2);
+    }
+    
+    .main-container {
+      flex: 1;
+      padding: 2rem 1rem;
+    }
+    
+    .card {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    
+    .club-header {
+      background-color: #FF1493;
+      background-image: linear-gradient(135deg, #FF1493 10%, #FF69B4 100%);
+      color: white;
+      padding: 2.5rem;
+      border-radius: 15px;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .decorative-circles {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      z-index: 1;
+    }
+    
+    .circle-1 {
+      width: 200px;
+      height: 200px;
+      top: -100px;
+      right: -50px;
+    }
+    
+    .circle-2 {
+      width: 150px;
+      height: 150px;
+      bottom: -50px;
+      left: -50px;
+    }
+    
+    .club-header-content {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .club-header h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .club-header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 80%;
+    }
+    
+    .text-primary {
+      color: #FF1493 !important;
+    }
+    
+    .bg-primary {
+      background-color: #FF1493 !important;
+    }
+    
     .spinner-border {
       width: 1rem;
       height: 1rem;
     }
-    .club-badge {
-      background-color: #f8f9fa;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      margin-right: 0.5rem;
-      display: inline-block;
-      margin-bottom: 0.5rem;
+    
+    .breadcrumb {
+      background-color: transparent;
+      padding: 0;
+      margin-bottom: 1.5rem;
     }
+    
+    .breadcrumb-item + .breadcrumb-item::before {
+      content: ">";
+    }
+    
+    .breadcrumb-item a {
+      color: #6c757d;
+      text-decoration: none;
+    }
+    
+    .breadcrumb-item a:hover {
+      color: #FF1493;
+    }
+    
+    .breadcrumb-item.active {
+      color: #FF1493;
+    }
+    
     .category-badge {
-      background-color: #f1f8ff;
-      border: 1px solid #e1e4e8;
-      color: #0366d6;
-      padding: 6px 12px;
+      background-color: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 8px 16px;
       border-radius: 20px;
       font-size: 0.9rem;
       display: inline-block;
-      margin-bottom: 1rem;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
     }
+    
     .section-header {
       border-bottom: 2px solid #f1f1f1;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.8rem;
       margin-bottom: 1.5rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .membership-status {
-      background-color: #f1f8ff;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      border: 1px solid #e1e4e8;
+    
+    .section-header h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
     }
+    
+    .membership-status {
+      background-color: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: none;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .membership-status h4 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    
+    .list-group {
+      border-radius: 15px;
+      overflow: hidden;
+    }
+    
+    .list-group-item {
+      border-color: #f1f1f1;
+      padding: 1rem;
+    }
+    
     .member-item {
       display: flex;
       align-items: center;
     }
+    
     .member-item .member-name {
       flex-grow: 1;
     }
+    
     .member-item .member-role {
       margin-left: 10px;
       font-size: 0.8rem;
       color: #6c757d;
     }
+    
+    .member-role .badge {
+      font-weight: 500;
+      padding: 5px 10px;
+    }
+    
+    .club-actions {
+      margin-top: 1.5rem;
+    }
+    
+    .club-actions .btn {
+      margin-right: 0.5rem;
+      padding: 0.5rem 1.2rem;
+    }
+    
+    /* Make club action buttons more visible */
+    #club-actions .btn-outline-primary,
+    #club-actions .btn-outline-danger {
+      background-color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      padding: 0.6rem 1.5rem;
+      border-width: 2px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    #club-actions .btn-outline-primary {
+      color: #FF1493;
+      border-color: #FF1493;
+    }
+    
+    #club-actions .btn-outline-primary:hover {
+      background-color: #FF1493;
+      color: white;
+    }
+    
+    #club-actions .btn-outline-danger {
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+    
+    #club-actions .btn-outline-danger:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    .modal-content {
+      border-radius: 15px;
+      border: none;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .modal-header {
+      border-bottom: 1px solid #f1f1f1;
+      padding: 1.25rem;
+    }
+    
+    .modal-footer {
+      border-top: 1px solid #f1f1f1;
+      padding: 1.25rem;
+    }
+    
+    .event-card {
+      height: 100%;
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    
+    .event-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .event-card .card-body {
+      padding: 1.5rem;
+    }
+    
+    .event-card h5 {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .event-card .event-date {
+      font-size: 0.85rem;
+      color: #6c757d;
+      margin-bottom: 1rem;
+    }
+    
+    footer {
+      background-color: white;
+      color: #6c757d;
+      padding: 1rem 0;
+      text-align: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      border-top: 1px solid #f1f1f1;
+      margin-top: auto;
+    }
   </style>
 </head>
 <body>
 
-<!-- Navbar Start -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4 px-lg-5 py-3">
-  <a href="index.html" class="navbar-brand p-0">
-    <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
-  </a>
-  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-    <span class="fa fa-bars"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarCollapse">
-    <ul id="navbarLinks" class="navbar-nav ms-auto py-0">
-      <!-- Populated dynamically -->
-    </ul>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">
+      <h1 class="text-primary m-0"><i class="fas fa-users me-2"></i>ClubConnect</h1>
+    </a>
+    <div class="d-flex">
+      <a href="#" id="logoutBtn" class="btn btn-sm btn-primary">Logout</a>
+    </div>
   </div>
 </nav>
-<!-- Navbar End -->
 
-<!-- Club Info -->
-<div class="container py-5">
-  <div class="row mb-4">
-    <div class="col-12">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-          <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
-          <li class="breadcrumb-item active" aria-current="page">Club Details</li>
-        </ol>
-      </nav>
-    </div>
-  </div>
+<!-- Main Container -->
+<div class="main-container">
+  <div class="container">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+        <li class="breadcrumb-item"><a href="dashboard.html">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Club Details</li>
+      </ol>
+    </nav>
 
-  <div class="text-center mb-5">
-    <h1 id="club-name" class="display-4">
-      <span class="spinner-border text-primary" role="status"></span> Loading Club...
-    </h1>
-    <p id="club-description" class="lead text-muted">Fetching club details...</p>
-    <div id="club-category" class="mt-2">
-      <!-- Category will be displayed here -->
-    </div>
-    <div id="club-actions" class="mt-3">
-      <!-- Action buttons will be added here if user is owner -->
-    </div>
-  </div>
-
-  <!-- Membership Status Section -->
-  <div id="membership-section" class="membership-status mb-4">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h4 class="mb-0"><i class="fas fa-user-check me-2"></i>Membership Status</h4>
-        <p id="membership-status-text" class="mb-0 mt-2">
-          <span class="spinner-border text-primary" role="status"></span> Checking membership status...
-        </p>
-      </div>
-      <div id="membership-actions">
-        <button id="join-club-btn" class="btn btn-primary d-none">
-          <i class="fas fa-user-plus"></i> Join Club
-        </button>
-        <button id="leave-club-btn" class="btn btn-outline-danger d-none">
-          <i class="fas fa-sign-out-alt"></i> Leave Club
-        </button>
+    <!-- Club Header -->
+    <div class="club-header">
+      <div class="decorative-circles circle-1"></div>
+      <div class="decorative-circles circle-2"></div>
+      
+      <div class="club-header-content">
+        <h2 id="club-name" class="mb-2">Loading Club...</h2>
+        <p id="club-description" class="mb-0">Fetching club details...</p>
+        <div id="club-category" class="mt-3">
+          <!-- Category will be displayed here -->
+        </div>
+        <div id="club-actions" class="mt-4">
+          <!-- Action buttons will be added here if user is owner -->
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="row">
-    <!-- Members Section -->
-    <div class="col-md-4 mb-5">
-      <div class="section-header">
-        <h3><i class="fas fa-users me-2 text-primary"></i>Members</h3>
-        <button id="invite-member-btn" class="btn btn-sm btn-outline-primary d-none">
-          <i class="fas fa-user-plus"></i> Invite
-        </button>
+    <!-- Membership Status Section -->
+    <div id="membership-section" class="membership-status">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h4 class="mb-0"><i class="fas fa-user-check me-2"></i>Membership Status</h4>
+          <p id="membership-status-text" class="mb-0 mt-2">
+            <span class="spinner-border text-primary" role="status"></span> Checking membership status...
+          </p>
+        </div>
+        <div id="membership-actions">
+          <button id="join-club-btn" class="btn btn-primary d-none">
+            <i class="fas fa-user-plus"></i> Join Club
+          </button>
+          <button id="leave-club-btn" class="btn btn-outline-danger d-none">
+            <i class="fas fa-sign-out-alt"></i> Leave Club
+          </button>
+        </div>
       </div>
-      <ul id="member-list" class="list-group shadow-sm">
-        <li class="list-group-item text-center">
-          <span class="spinner-border text-primary" role="status"></span> Loading members...
-        </li>
-      </ul>
     </div>
 
-    <!-- Events Section -->
-    <div class="col-md-8">
-      <div class="section-header">
-        <h3><i class="fas fa-calendar-alt me-2 text-primary"></i>Events</h3>
-        <button id="create-event-btn" class="btn btn-sm btn-primary d-none">
-          <i class="fas fa-plus"></i> Create Event
-        </button>
+    <div class="row">
+      <!-- Members Section -->
+      <div class="col-md-4 mb-5">
+        <div class="card">
+          <div class="card-body">
+            <div class="section-header">
+              <h3><i class="fas fa-users me-2 text-primary"></i>Members</h3>
+              <button id="invite-member-btn" class="btn btn-sm btn-outline-primary d-none">
+                <i class="fas fa-user-plus"></i> Invite
+              </button>
+            </div>
+            <ul id="member-list" class="list-group">
+              <li class="list-group-item text-center">
+                <span class="spinner-border text-primary" role="status"></span> Loading members...
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
-      <div id="event-list" class="row g-4">
-        <div class="col-12 text-center py-5">
-          <span class="spinner-border text-primary" role="status"></span>
-          <p class="mt-2">Loading events...</p>
+
+      <!-- Events Section -->
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-body">
+            <div class="section-header">
+              <h3><i class="fas fa-calendar-alt me-2 text-primary"></i>Events</h3>
+              <button id="create-event-btn" class="btn btn-sm btn-primary d-none">
+                <i class="fas fa-plus"></i> Create Event
+              </button>
+            </div>
+            <div id="event-list" class="row g-4">
+              <div class="col-12 text-center py-5">
+                <span class="spinner-border text-primary" role="status"></span>
+                <p class="mt-2">Loading events...</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -160,7 +448,7 @@
 </div>
 
 <!-- Footer -->
-<footer class="container-fluid bg-dark text-white text-center py-4">
+<footer>
   <div class="container">
     <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
   </div>
@@ -410,6 +698,5 @@
     }
   }
 </script>
-
 </body>
 </html>

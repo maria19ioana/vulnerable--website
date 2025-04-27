@@ -889,9 +889,11 @@ if (createEventForm) {
             console.log('Event creation response text:', text);
 
             if (response.ok) {
-                messageEl.innerHTML = `<div class="alert alert-success">Event created successfully.</div>`;
-                // Optionally redirect or clear form
-                createEventForm.reset();
+                messageEl.innerHTML = `<div class="alert alert-success">Event created successfully. Redirecting to dashboard...</div>`;
+                // Redirect to dashboard after creating event
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
             } else if (response.status === 401) {
                 messageEl.innerHTML = `<div class="alert alert-danger">Authentication error. Please log in again.</div>`;
                 setTimeout(() => window.location.href = 'login.html', 2000);

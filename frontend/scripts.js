@@ -1051,6 +1051,21 @@ async function loadEventClubs() {
             option.textContent = "No clubs available - create or join a club first";
             selectEl.appendChild(option);
         }
+        
+        // Check if club ID is provided in URL parameter and pre-select it
+        const urlParams = new URLSearchParams(window.location.search);
+        const clubIdFromUrl = urlParams.get('club');
+        
+        if (clubIdFromUrl) {
+            console.log(`Club ID ${clubIdFromUrl} provided in URL, pre-selecting it`);
+            // Find and select the option with the matching club ID
+            for (let i = 0; i < selectEl.options.length; i++) {
+                if (selectEl.options[i].value === clubIdFromUrl) {
+                    selectEl.selectedIndex = i;
+                    break;
+                }
+            }
+        }
     } catch (err) {
         console.error('Error loading clubs for event dropdown:', err);
     }

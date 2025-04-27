@@ -202,13 +202,16 @@ function checkAuth() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const publicPages = ['login.html', 'register.html', 'index.html', ''];
     
-    if (!token && !publicPages.includes(currentPage)) {
-        window.location.href = 'login.html';
-        return false;
+    // Special case for index.html - redirect logged-in users to dashboard
+    if (token && (currentPage === 'index.html' || currentPage === '')) {
+        console.log('User is logged in but on welcome page. Redirecting to dashboard...');
+        window.location.href = 'dashboard.html';
+        return true;
     }
     
-    if (token && (currentPage === 'login.html' || currentPage === 'register.html')) {
-        window.location.href = 'index.html';
+    // Regular auth check - redirect non-authenticated users to login
+    if (!token && !publicPages.includes(currentPage)) {
+        window.location.href = 'login.html';
         return false;
     }
     
@@ -1448,3 +1451,22 @@ function showEventDetails(eventId) {
     }
   });
 }
+
+// Run auth check on all pages when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Check authentication status and redirect if needed
+  checkAuth();
+  
+  // Setup logout button if it exists
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('username');
+      localStorage.removeItem('canEdit');
+      window.location.href = 'login.html';
+    });
+  }
+});

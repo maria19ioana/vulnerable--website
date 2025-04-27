@@ -68,6 +68,7 @@
             <strong>Success!</strong><br>
             You have joined club <b>ID ${data.clubId}</b> as <b>${data.role}</b>.
           </div>`;
+        window.location.href = 'dashboard.html';
       } else {
         result.innerHTML = `<div class="alert alert-danger">${data.message || 'Invalid invite.'}</div>`;
       }

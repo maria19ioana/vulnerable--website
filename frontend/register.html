@@ -342,11 +342,18 @@
           const response = await apiPost('/register', { username, email, password });
           
           if (response && response.success) {
-            messageEl.innerHTML = '<div class="alert alert-success">Account created successfully! Redirecting to login...</div>';
-            
-            setTimeout(() => {
-              window.location.href = 'login.html';
-            }, 1000);
+            if (response.token) {
+                saveToken(response.token);
+                messageEl.innerHTML = `<div class="alert alert-success">Registration successful! Redirecting to dashboard...</div>`;
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            } else {
+                messageEl.innerHTML = `<div class="alert alert-success">Registration successful! Redirecting to login...</div>`;
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
           } else {
             messageEl.innerHTML = `<div class="alert alert-danger">${response.message || 'Registration failed. Please try again.'}</div>`;
             submitBtn.disabled = false;

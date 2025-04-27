@@ -6,12 +6,39 @@ const SECRET = 'supersecret';
 function sign(user) {
   console.log(`Signing token for user: ${user.username} (ID: ${user.id})`);
   const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
+    { id: user.id, username: user.username, role: user.role, email: user.email },
     SECRET,
     { algorithm: 'HS256' }
   );
   console.log(`Token generated: ${token.substring(0, 20)}...`);
   return token;
+}
+
+// Function to create invite tokens
+function signInvite(data) {
+  console.log(`Signing invite token for: ${data.email} (Club: ${data.group}, Role: ${data.level})`);
+  const token = jwt.sign(
+    { 
+      group: data.group,        // Club ID
+      email: data.email,        // Invited email 
+      level: data.level,        // Role (member, admin, etc)
+      exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60 // 7 days expiration
+    },
+    SECRET,
+    { algorithm: 'HS256' }
+  );
+  console.log(`Invite token generated: ${token.substring(0, 20)}...`);
+  return token;
+}
+
+// Function to decode a token without verifying (VULNERABLE - use with caution)
+function decode(token) {
+  try {
+    return jwt.decode(token);
+  } catch (err) {
+    console.error('JWT decode error:', err.message);
+    return null;
+  }
 }
 
 function verify(token) {
@@ -28,7 +55,7 @@ function verify(token) {
 
     // Otherwise, use the proper verification
     const decoded = jwt.verify(token, SECRET);
-    console.log(`Token verified successfully for: ${decoded.username || 'unknown'}`);
+    console.log(`Token verified successfully for: ${decoded.username || decoded.email || 'unknown'}`);
     return decoded;
   } catch (err) {
     console.error('JWT verification error:', err.message);
@@ -67,4 +94,4 @@ function debugToken(token) {
   }
 }
 
-module.exports = { sign, verify, verifyToken, debugToken, secret: SECRET };
+module.exports = { sign, signInvite, verify, verifyToken, debugToken, decode, secret: SECRET };

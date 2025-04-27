@@ -287,19 +287,21 @@
             </div>
           </div>
           <div class="col-md-4">
-            <div class="card stat-card">
-              <div class="card-body p-4">
-                <div class="d-flex align-items-center">
-                  <div class="btn-square bg-primary rounded-circle me-3">
-                    <i class="fas fa-bell text-white"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-1">Notifications</h6>
-                    <h4 class="mb-0" id="notifications-count">0</h4>
+            <a href="invites.html" style="text-decoration: none; color: inherit;">
+              <div class="card stat-card">
+                <div class="card-body p-4">
+                  <div class="d-flex align-items-center">
+                    <div class="btn-square bg-primary rounded-circle me-3">
+                      <i class="fas fa-bell text-white"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-1">Notifications</h6>
+                      <h4 class="mb-0" id="notifications-count">0</h4>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -319,11 +321,35 @@
                 <i class="fas fa-sync-alt me-1"></i> Refresh
               </button>
             </div>
+            <h5 class="mb-3">Clubs You Own</h5>
             <div id="activity-list">
               <!-- Activity items will be inserted here -->
             </div>
             <div id="no-results" class="text-center py-4 d-none">
               <p class="text-muted mb-0">No clubs match your search</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Clubs User is Member Of -->
+        <div class="card mt-4">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h5 class="mb-0">Clubs You're a Member Of</h5>
+              <div>
+                <span class="badge bg-primary me-2" id="member-clubs-count">0</span>
+                <button id="refresh-memberships" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+              </div>
+            </div>
+            <div id="member-clubs-list">
+              <!-- Member clubs will be inserted here -->
+            </div>
+            <div id="no-memberships" class="text-center py-4">
+              <i class="fas fa-user-friends fa-3x text-muted mb-3"></i>
+              <p class="mb-0">You haven't joined any clubs yet.</p>
+              <p class="text-muted small">Find exciting clubs to join!</p>
             </div>
           </div>
         </div>
@@ -463,6 +489,30 @@
         if (searchInput) searchInput.value = '';
         // Hide no results message
         if (noResults) noResults.classList.add('d-none');
+      });
+    }
+    
+    // Add membership refresh button functionality
+    const refreshMembershipsButton = document.getElementById('refresh-memberships');
+    if (refreshMembershipsButton) {
+      refreshMembershipsButton.addEventListener('click', function() {
+        console.log('Manually refreshing memberships...');
+        // Show loading state on button
+        const originalHTML = refreshMembershipsButton.innerHTML;
+        refreshMembershipsButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        refreshMembershipsButton.disabled = true;
+        
+        // Force cache clear for memberships
+        localStorage.removeItem('userMemberships');
+        
+        // Call membership loading function
+        loadUserMemberships();
+        
+        // Reset button after delay
+        setTimeout(() => {
+          refreshMembershipsButton.innerHTML = originalHTML;
+          refreshMembershipsButton.disabled = false;
+        }, 1000);
       });
     }
   });

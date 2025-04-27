@@ -299,6 +299,10 @@
             const form = document.getElementById('loginForm');
             const messageEl = document.getElementById('login-message');
 
+            // Check if there's a return URL in the query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnUrl = urlParams.get('return');
+
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -325,7 +329,12 @@
                         messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
                         
                         setTimeout(() => {
-                            window.location.href = 'dashboard.html';
+                            // Redirect to return URL if available, otherwise go to dashboard
+                            if (returnUrl) {
+                                window.location.href = returnUrl;
+                            } else {
+                                window.location.href = 'dashboard.html';
+                            }
                         }, 1000);
                     } else {
                         messageEl.innerHTML = '<div class="alert alert-danger">Login failed. Please check your credentials.</div>';

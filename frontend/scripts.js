@@ -8,6 +8,22 @@ const API_BASE_URL = (() => {
 // ========== TOKEN MANAGEMENT ==========
 function saveToken(token) {
   localStorage.setItem('token', token);
+  
+  // If token exists, try to extract and store user email from it
+  if (token) {
+    try {
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload.email) {
+          localStorage.setItem('userEmail', payload.email);
+          console.log('Stored user email:', payload.email);
+        }
+      }
+    } catch (e) {
+      console.error('Error extracting email from token:', e);
+    }
+  }
 }
 
 function getToken() {
@@ -313,7 +329,19 @@ if (loginForm) {
                                     }
                                 }
                                 
-                                window.location.href = 'dashboard.html';
+                                messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
+                                
+                                // Check for return URL in query parameters
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const returnUrl = urlParams.get('return');
+                                
+                                setTimeout(() => {
+                                    if (returnUrl) {
+                                        window.location.href = returnUrl;
+                                    } else {
+                                        window.location.href = 'dashboard.html';
+                                    }
+                                }, 1000);
                             } else {
                                 messageEl.innerHTML = `<div class="alert alert-danger">Login failed: No token received</div>`;
                             }
@@ -558,6 +586,9 @@ function loadClubs() {
     const clubsCountEl = document.getElementById('clubs-count');
     const eventsCountEl = document.getElementById('events-count');
     const activityListEl = document.getElementById('activity-list');
+    const memberClubsListEl = document.getElementById('member-clubs-list');
+    const memberClubsCountEl = document.getElementById('member-clubs-count');
+    const noMembershipsEl = document.getElementById('no-memberships');
     
     if (clubsCountEl) {
         console.log('Loading clubs for dashboard...');
@@ -650,6 +681,10 @@ function loadClubs() {
                                 `;
                             }
                         }
+                        
+                        // Load clubs the user is a member of (but didn't create)
+                        loadUserMemberships();
+                        
                     } catch (e) {
                         console.error('Error parsing dashboard data:', e);
                         if (activityListEl) {
@@ -724,10 +759,53 @@ async function loadUserClubsAndEvents() {
 
 // Function to get all clubs the user is a member of
 async function getUserClubMemberships() {
+    console.log('Getting user club memberships...');
     try {
+        // Try the new direct endpoint first
+        try {
+            console.log('Trying direct memberships endpoint...');
+            const directResponse = await apiGet('/user/memberships', true);
+            console.log('Direct memberships response:', directResponse);
+            
+            if (directResponse && directResponse.success && Array.isArray(directResponse.memberships)) {
+                const memberships = directResponse.memberships.map(m => ({
+                    club_id: m.club_id,
+                    name: m.club_name,
+                    role: m.role
+                }));
+                console.log('Memberships from direct endpoint:', memberships);
+                return memberships;
+            }
+        } catch (err) {
+            console.log('Direct memberships endpoint failed, falling back to old method:', err);
+        }
+        
+        // If direct endpoint fails, fall back to the old method
         // First get the list of all clubs to fetch their names
         const allClubsResponse = await apiGet('/clubs', true);
-        const allClubs = allClubsResponse || [];
+        console.log('All clubs response:', allClubsResponse);
+        
+        // Handle different response formats
+        let allClubs = [];
+        if (Array.isArray(allClubsResponse)) {
+            allClubs = allClubsResponse;
+        } else if (allClubsResponse && allClubsResponse.success && Array.isArray(allClubsResponse.clubs)) {
+            allClubs = allClubsResponse.clubs;
+        } else if (allClubsResponse && Array.isArray(allClubsResponse.data)) {
+            allClubs = allClubsResponse.data;
+        } else {
+            console.log('Unexpected clubs response format:', allClubsResponse);
+            // Try to extract clubs from response if it's an object
+            if (allClubsResponse && typeof allClubsResponse === 'object') {
+                allClubs = Object.values(allClubsResponse).filter(item => 
+                    item && typeof item === 'object' && item.id && item.name
+                );
+            }
+        }
+        
+        console.log('Processed clubs list:', allClubs);
+        
+        console.log('All available clubs:', allClubs);
         
         // Get all club memberships for the current user
         const memberships = [];
@@ -735,8 +813,12 @@ async function getUserClubMemberships() {
         // Make requests to each club to check membership
         for (const club of allClubs) {
             try {
+                console.log(`Checking membership for club ${club.id} (${club.name})`);
                 const membershipCheck = await apiGet(`/clubs/${club.id}/membership`, true);
+                console.log(`Club ${club.id} membership check:`, membershipCheck);
+                
                 if (membershipCheck && membershipCheck.isMember) {
+                    console.log(`User is a member of club ${club.id} (${club.name})`);
                     memberships.push({
                         club_id: club.id,
                         name: club.name,
@@ -748,10 +830,101 @@ async function getUserClubMemberships() {
             }
         }
         
+        console.log('Final memberships list:', memberships);
         return memberships;
     } catch (error) {
         console.error('Error getting user club memberships:', error);
         return [];
+    }
+}
+
+// Function to load clubs the user is a member of
+async function loadUserMemberships() {
+    const memberClubsListEl = document.getElementById('member-clubs-list');
+    const memberClubsCountEl = document.getElementById('member-clubs-count');
+    const noMembershipsEl = document.getElementById('no-memberships');
+    
+    if (!memberClubsListEl) return;
+    
+    try {
+        // Show loading state
+        memberClubsListEl.innerHTML = `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading memberships...</span>
+                </div>
+                <p class="mt-2">Loading your club memberships...</p>
+            </div>
+        `;
+        
+        // Get the user's club memberships
+        const memberships = await getUserClubMemberships();
+        console.log('User club memberships:', memberships);
+        
+        if (memberships.length === 0) {
+            // No memberships found
+            if (noMembershipsEl) noMembershipsEl.style.display = 'block';
+            memberClubsListEl.innerHTML = '';
+            if (memberClubsCountEl) memberClubsCountEl.textContent = '0';
+            return;
+        }
+        
+        // Get clubs the user owns to exclude them from this list
+        const ownedClubs = JSON.parse(localStorage.getItem('dashboardClubs') || '[]');
+        console.log('Owned clubs:', ownedClubs);
+        
+        // Convert all IDs to strings for consistent comparison
+        const ownedClubIds = ownedClubs.map(club => String(club.id));
+        console.log('Owned club IDs:', ownedClubIds);
+        
+        // Filter out clubs the user owns - convert all IDs to strings for comparison
+        const memberOnlyClubs = memberships.filter(club => {
+            const clubId = String(club.club_id);
+            const isOwned = ownedClubIds.includes(clubId);
+            console.log(`Club ${clubId} (${club.name}) - Owned: ${isOwned}`);
+            return !isOwned;
+        });
+        
+        console.log('Member-only clubs (filtered):', memberOnlyClubs);
+        
+        // Update count
+        if (memberClubsCountEl) {
+            memberClubsCountEl.textContent = memberOnlyClubs.length;
+        }
+        
+        // Display clubs
+        if (memberOnlyClubs.length > 0) {
+            if (noMembershipsEl) noMembershipsEl.style.display = 'none';
+            
+            let html = '';
+            memberOnlyClubs.forEach(club => {
+                html += `
+                <div class="d-flex align-items-center border-bottom py-3">
+                    <div class="btn-square bg-primary rounded-circle me-3">
+                        <i class="fas fa-user-friends text-white"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">${club.name}</h6>
+                        <span class="badge bg-info">${club.role}</span>
+                    </div>
+                    <a href="club.html?id=${club.club_id}" class="btn btn-sm btn-outline-primary">View</a>
+                </div>
+                `;
+            });
+            
+            memberClubsListEl.innerHTML = html;
+        } else {
+            if (noMembershipsEl) noMembershipsEl.style.display = 'block';
+            memberClubsListEl.innerHTML = '';
+        }
+    } catch (error) {
+        console.error('Error loading user memberships:', error);
+        memberClubsListEl.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Error loading your club memberships: ${error.message}
+            </div>
+        `;
     }
 }
 
@@ -1332,13 +1505,22 @@ async function displayMembers(clubId) {
     members.forEach(member => {
       const memberItem = document.createElement('li');
       memberItem.className = 'list-group-item member-item';
+      
+      // Determine the badge based on role
+      let roleDisplay = 'Member';
+      if (member.role === 'owner') {
+        roleDisplay = '<span class="badge bg-primary">Owner</span>';
+      } else if (member.role === 'admin') {
+        roleDisplay = '<span class="badge bg-danger">Admin</span>';
+      }
+      
       memberItem.innerHTML = `
         <div class="member-name">
           <i class="fas fa-user me-2 text-secondary"></i>
           ${member.username || 'Unknown Member'}
         </div>
         <div class="member-role">
-          ${member.role === 'owner' ? '<span class="badge bg-primary">Owner</span>' : 'Member'}
+          ${roleDisplay}
         </div>
       `;
       memberList.appendChild(memberItem);
@@ -1452,6 +1634,309 @@ function showEventDetails(eventId) {
   });
 }
 
+// ========== NOTIFICATIONS AND INVITES ==========
+
+// Variable to track if invites have been loaded already
+let invitesLoaded = false;
+let invitesLoadInProgress = false;
+
+// Function to load user invites
+async function loadUserInvites() {
+  // Prevent multiple simultaneous calls to load invites
+  if (invitesLoadInProgress) {
+    console.log('Invite loading already in progress, waiting...');
+    // Wait for the current load to finish
+    while (invitesLoadInProgress) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return JSON.parse(localStorage.getItem('userInvites') || '[]');
+  }
+  
+  // If invites were already loaded in this session, don't reload them
+  if (invitesLoaded) {
+    console.log('Invites already loaded, using cached data');
+    return JSON.parse(localStorage.getItem('userInvites') || '[]');
+  }
+  
+  try {
+    invitesLoadInProgress = true;
+    console.log('Loading user invites...');
+    // Try the /api/invites endpoint first (used by invites.html)
+    let response;
+    try {
+      response = await apiGet('/api/invites', true);
+    } catch (error) {
+      console.log('Failed to load from /api/invites, trying /user/invites...');
+      response = await apiGet('/user/invites', true);
+    }
+    
+    if (response && response.success) {
+      // Store invites in localStorage for easy access
+      localStorage.setItem('userInvites', JSON.stringify(response.invites));
+      
+      // Update notification count in UI
+      updateNotificationCount(response.invites.length);
+      
+      // Mark invites as loaded for this session
+      invitesLoaded = true;
+      
+      return response.invites;
+    } else {
+      console.error('Error loading invites:', response?.message || 'Unknown error');
+      return [];
+    }
+  } catch (error) {
+    console.error('Error loading invites:', error);
+    return [];
+  } finally {
+    invitesLoadInProgress = false;
+  }
+}
+
+// Function to update notification count in UI
+function updateNotificationCount(count) {
+  const notificationsCountEl = document.getElementById('notifications-count');
+  if (notificationsCountEl) {
+    notificationsCountEl.textContent = count;
+    
+    // Add badge to notification icon if there are notifications
+    const notificationIcon = document.querySelector('.fa-bell').parentElement;
+    if (notificationIcon) {
+      if (count > 0) {
+        notificationIcon.classList.add('position-relative');
+        
+        // Check if badge already exists
+        let badge = notificationIcon.querySelector('.notification-badge');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+          notificationIcon.appendChild(badge);
+        }
+        
+        badge.textContent = count;
+        badge.style.display = 'block';
+      } else {
+        // Hide badge if no notifications
+        const badge = notificationIcon.querySelector('.notification-badge');
+        if (badge) {
+          badge.style.display = 'none';
+        }
+      }
+    }
+  }
+}
+
+// Show invites modal with all pending invites
+function showInvitesModal() {
+  // Get invites from localStorage
+  const invites = JSON.parse(localStorage.getItem('userInvites') || '[]');
+  
+  // Create modal if it doesn't exist
+  let modal = document.getElementById('invitesModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'invitesModal';
+    modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-labelledby', 'invitesModalLabel');
+    modal.setAttribute('aria-hidden', 'true');
+    
+    document.body.appendChild(modal);
+  }
+  
+  // Generate modal content
+  let invitesHtml = '';
+  if (invites.length > 0) {
+    invitesHtml = invites.map(invite => `
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">${invite.club_name}</h5>
+          <p class="card-text">
+            You have been invited to join this club as a <strong>${invite.role}</strong>
+          </p>
+          <div class="d-flex justify-content-end">
+            <button class="btn btn-sm btn-outline-danger me-2 reject-invite-btn" data-invite-id="${invite.id}">
+              <i class="fas fa-times me-1"></i> Reject
+            </button>
+            <button class="btn btn-sm btn-primary accept-invite-btn" data-invite-id="${invite.id}">
+              <i class="fas fa-check me-1"></i> Accept
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    invitesHtml = `
+      <div class="text-center py-4">
+        <i class="fas fa-envelope-open fa-3x text-muted mb-3"></i>
+        <p class="lead">No pending invites</p>
+      </div>
+    `;
+  }
+  
+  // Set modal content
+  modal.innerHTML = `
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="invitesModalLabel">
+            <i class="fas fa-envelope me-2 text-primary"></i>Club Invites
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          ${invitesHtml}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Initialize modal
+  const modalInstance = new bootstrap.Modal(modal);
+  modalInstance.show();
+  
+  // Add event listeners for accept/reject buttons
+  setTimeout(() => {
+    // Accept invite buttons
+    const acceptButtons = document.querySelectorAll('.accept-invite-btn');
+    acceptButtons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const inviteId = button.getAttribute('data-invite-id');
+        await acceptInvite(inviteId, button);
+      });
+    });
+    
+    // Reject invite buttons
+    const rejectButtons = document.querySelectorAll('.reject-invite-btn');
+    rejectButtons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const inviteId = button.getAttribute('data-invite-id');
+        await rejectInvite(inviteId, button);
+      });
+    });
+  }, 500);
+}
+
+// Force reloading of invites to update UI
+function forceReloadInvites() {
+  console.log('Forcing invites reload');
+  // Immediately mark as unloaded
+  invitesLoaded = false;
+  
+  // Only reload if not already in progress
+  if (!invitesLoadInProgress) {
+    loadUserInvites();
+  } else {
+    console.log('Skipping reload as one is already in progress');
+  }
+}
+
+// Function to accept an invite
+async function acceptInvite(inviteId, buttonEl) {
+  try {
+    // Disable button and show loading state
+    buttonEl.disabled = true;
+    const originalText = buttonEl.innerHTML;
+    buttonEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Accepting...';
+    
+    // Call the API
+    const response = await apiPost(`/invites/${inviteId}/accept`, {}, true);
+    
+    if (response && response.success) {
+      // Show success message
+      const card = buttonEl.closest('.card');
+      card.innerHTML = `
+        <div class="card-body text-center">
+          <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+          <h5>Invite Accepted!</h5>
+          <p>You are now a member of the club.</p>
+          <a href="club.html?id=${response.clubId}" class="btn btn-primary">Go to Club Page</a>
+        </div>
+      `;
+      
+      // Update invites list
+      const invites = JSON.parse(localStorage.getItem('userInvites') || '[]');
+      const updatedInvites = invites.filter(invite => invite.id != inviteId);
+      localStorage.setItem('userInvites', JSON.stringify(updatedInvites));
+      
+      // Force reload invites to update UI
+      forceReloadInvites();
+      
+      // Refresh club memberships
+      if (typeof loadUserClubsAndEvents === 'function') {
+        loadUserClubsAndEvents();
+      }
+    } else {
+      // Show error and reset button
+      alert('Error accepting invite: ' + (response?.message || 'Unknown error'));
+      buttonEl.disabled = false;
+      buttonEl.innerHTML = originalText;
+    }
+  } catch (error) {
+    console.error('Error accepting invite:', error);
+    alert('Error accepting invite: ' + error.message);
+    
+    // Reset button
+    buttonEl.disabled = false;
+    buttonEl.innerHTML = originalText;
+  }
+}
+
+// Function to reject an invite
+async function rejectInvite(inviteId, buttonEl) {
+  try {
+    // Confirm rejection
+    if (!confirm('Are you sure you want to reject this invite?')) {
+      return;
+    }
+    
+    // Disable button and show loading state
+    buttonEl.disabled = true;
+    const originalText = buttonEl.innerHTML;
+    buttonEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Rejecting...';
+    
+    // Call the API
+    const response = await apiPost(`/invites/${inviteId}/reject`, {}, true);
+    
+    if (response && response.success) {
+      // Show success message
+      const card = buttonEl.closest('.card');
+      card.innerHTML = `
+        <div class="card-body text-center">
+          <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
+          <h5>Invite Rejected</h5>
+          <p>You have declined to join this club.</p>
+        </div>
+      `;
+      
+      // Update invites list
+      const invites = JSON.parse(localStorage.getItem('userInvites') || '[]');
+      const updatedInvites = invites.filter(invite => invite.id != inviteId);
+      localStorage.setItem('userInvites', JSON.stringify(updatedInvites));
+      
+      // Force reload invites to update UI
+      forceReloadInvites();
+      
+      // No need to refresh club memberships for rejections
+    } else {
+      // Show error and reset button
+      alert('Error rejecting invite: ' + (response?.message || 'Unknown error'));
+      buttonEl.disabled = false;
+      buttonEl.innerHTML = originalText;
+    }
+  } catch (error) {
+    console.error('Error rejecting invite:', error);
+    alert('Error rejecting invite: ' + error.message);
+    
+    // Reset button
+    buttonEl.disabled = false;
+    buttonEl.innerHTML = originalText;
+  }
+}
+
 // Run auth check on all pages when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
   // Check authentication status and redirect if needed
@@ -1468,5 +1953,10 @@ document.addEventListener('DOMContentLoaded', function() {
       localStorage.removeItem('canEdit');
       window.location.href = 'login.html';
     });
+  }
+  
+  // Load user invites if on dashboard
+  if (window.location.pathname.includes('dashboard.html')) {
+    loadUserInvites();
   }
 });

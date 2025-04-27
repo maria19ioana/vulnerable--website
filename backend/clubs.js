@@ -834,4 +834,37 @@ router.post('/clubs/:id/delete', auth, (req, res) => {
   });
 });
 
+// Get all memberships for the current user
+router.get('/user/memberships', auth, (req, res) => {
+  const userId = req.user.id;
+  
+  console.log(`Getting all memberships for user ID: ${userId}`);
+  
+  // SQL query to get all club memberships with club details
+  const query = `
+    SELECT cm.*, c.name as club_name 
+    FROM club_members cm
+    JOIN clubs c ON cm.club_id = c.id
+    WHERE cm.user_id = ?
+  `;
+  
+  db.all(query, [userId], (err, memberships) => {
+    if (err) {
+      console.error('Error fetching user memberships:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error fetching user memberships.' 
+      });
+    }
+    
+    console.log(`Found ${memberships.length} memberships for user ID: ${userId}`);
+    console.log('Memberships:', memberships);
+    
+    res.json({
+      success: true,
+      memberships: memberships
+    });
+  });
+});
+
 module.exports = router;

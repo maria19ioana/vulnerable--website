@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -7,6 +10,11 @@ const app = express();
 const authRoutes = require('./auth.js');
 const clubRoutes = require('./clubs.js');
 const inviteRoutes = require('./invites.js');
+const auth = require('./middleware');
+const db = require('./db');
+
+// Set up static file serving for the frontend
+app.use('/frontend', express.static(path.join(__dirname, '../frontend')));
 
 // Configure CORS to allow all origins
 app.use((req, res, next) => {
@@ -55,10 +63,169 @@ app.use('/', authRoutes);
 app.use('/', clubRoutes);
 app.use('/', inviteRoutes);
 
-// Direct event routes handler for /events endpoints
-const auth = require('./middleware');
-const db = require('./db');
+// Add direct API routes for invites
+app.get('/api/invites', auth, (req, res) => {
+  // Forward to the /user/invites route in invites.js
+  const userId = req.user.id;
+  
+  console.log(`API invites request for user ID: ${userId}`);
+  
+  // First get the user's email
+  db.get('SELECT email FROM users WHERE id = ?', [userId], (err, user) => {
+    if (err) {
+      console.error('Error fetching user:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error fetching user information.' 
+      });
+    }
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found.' 
+      });
+    }
+    
+    const userEmail = user.email;
+    
+    // Get invites for the user's email
+    const query = `
+      SELECT i.*, c.name as club_name 
+      FROM invites i
+      JOIN clubs c ON i.club_id = c.id
+      WHERE i.email = ?
+    `;
+    
+    db.all(query, [userEmail], (err, invites) => {
+      if (err) {
+        console.error('Error fetching invites:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error fetching invites.' 
+        });
+      }
+      
+      res.json({
+        success: true,
+        invites: invites || []
+      });
+    });
+  });
+});
 
+// Also add API routes for accepting and rejecting invites
+app.post('/api/invites/:id/accept', auth, (req, res) => {
+    const inviteId = req.params.id;
+    const userId = req.user.id;
+    
+    console.log(`API accept invite request - ID: ${inviteId} by user: ${userId}`);
+    
+    // Get the invite details
+    db.get('SELECT * FROM invites WHERE id = ?', [inviteId], (err, invite) => {
+      if (err) {
+        console.error('Error fetching invite:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error fetching invite information.' 
+        });
+      }
+      
+      if (!invite) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Invite not found.' 
+        });
+      }
+      
+      // Verify user's email matches invite email
+      db.get('SELECT email FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err || !user || user.email !== invite.email) {
+          return res.status(403).json({ 
+            success: false, 
+            message: 'You are not authorized to accept this invite.' 
+          });
+        }
+        
+        // Add user to club members
+        const memberQuery = 'INSERT INTO club_members (club_id, user_id, role) VALUES (?, ?, ?)';
+        
+        // Log the role value before inserting into club_members
+        console.log(`API route: Adding user ${userId} to club ${invite.club_id} with role: ${invite.role}`);
+        
+        db.run(memberQuery, [invite.club_id, userId, invite.role], function(err) {
+          if (err) {
+            console.error('Error adding member to club:', err);
+            return res.status(500).json({ 
+              success: false, 
+              message: 'Error accepting invite.' 
+            });
+          }
+          
+          // After successfully adding to club members, remove the invite instead of updating status
+          const updateQuery = 'DELETE FROM invites WHERE id = ?';
+          db.run(updateQuery, [inviteId], function(err) {
+            if (err) {
+              console.error('Error removing invite:', err);
+              // Continue anyway since the user is already added to the club
+            }
+            
+            res.json({
+              success: true,
+              message: 'Invite accepted successfully.',
+              clubId: invite.club_id,
+              role: invite.role
+            });
+          });
+        });
+      });
+    });
+});
+
+app.post('/api/invites/:id/reject', auth, (req, res) => {
+    const inviteId = req.params.id;
+    const userId = req.user.id;
+    
+    console.log(`API reject invite request - ID: ${inviteId} by user: ${userId}`);
+    
+    // Verify user's email matches invite email
+    db.get('SELECT i.*, u.email FROM invites i JOIN users u ON u.id = ? WHERE i.id = ?', 
+      [userId, inviteId], (err, result) => {
+      if (err) {
+        console.error('Error fetching invite:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error fetching invite information.' 
+        });
+      }
+      
+      if (!result) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Invite not found or not authorized.' 
+        });
+      }
+      
+      // Delete the rejected invite instead of updating status
+      const updateQuery = 'DELETE FROM invites WHERE id = ?';
+      db.run(updateQuery, [inviteId], function(err) {
+        if (err) {
+          console.error('Error removing invite:', err);
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Error rejecting invite.' 
+          });
+        }
+        
+        res.json({
+          success: true,
+          message: 'Invite rejected successfully.'
+        });
+      });
+    });
+});
+
+// Direct event routes handler for /events endpoints
 // Get event by ID
 app.get('/events/:id', auth, (req, res) => {
     const eventId = req.params.id;

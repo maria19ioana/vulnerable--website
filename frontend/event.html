@@ -453,330 +453,221 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="scripts.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Check if user is logged in
-      if (!localStorage.getItem('token')) {
-        window.location.href = 'login.html';
-        return;
-      }
+document.addEventListener('DOMContentLoaded', function() {
+  if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+    return;
+  }
 
-      // Setup logout link
-      document.getElementById('logout-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        localStorage.removeItem('token');
-        window.location.href = 'login.html';
-      });
+  document.getElementById('logout-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+  });
 
-      // Get event ID from URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const eventId = urlParams.get('id');
-      
-      if (!eventId) {
-        document.getElementById('event-loading').classList.add('d-none');
-        document.getElementById('event-error').classList.remove('d-none');
-        document.querySelector('.error-message').textContent = 'No event ID provided.';
-        return;
-      }
+  // Get and decode event ID
+  const urlParams = new URLSearchParams(window.location.search);
+  const encodedEventId = urlParams.get('id');
 
-      // Load event details
-      showEventDetails(eventId);
+  if (!encodedEventId) {
+    document.getElementById('event-loading').classList.add('d-none');
+    document.getElementById('event-error').classList.remove('d-none');
+    document.querySelector('.error-message').textContent = 'No event ID provided.';
+    return;
+  }
 
-      // Setup edit event functionality
-      const editEventForm = document.getElementById('edit-event-form');
-      const saveEventBtn = document.getElementById('save-event-btn');
-      const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+  let eventId;
+  try {
+    eventId = parseInt(atob(encodedEventId));
+    console.log('Decoded Event ID:', eventId);
+  } catch (e) {
+    console.error('Invalid event ID encoding', e);
+    document.getElementById('event-loading').classList.add('d-none');
+    document.getElementById('event-error').classList.remove('d-none');
+    document.querySelector('.error-message').textContent = 'Invalid event ID.';
+    return;
+  }
 
-      // Populate edit form when modal is shown
-      document.getElementById('editEventModal').addEventListener('show.bs.modal', function() {
-        document.getElementById('edit-event-title').value = document.getElementById('event-title').textContent;
-        document.getElementById('edit-event-description').value = document.getElementById('event-description').textContent;
-      });
+  showEventDetails(eventId);
 
-      // Handle edit form submission
-      saveEventBtn.addEventListener('click', function() {
-        const title = document.getElementById('edit-event-title').value.trim();
-        const description = document.getElementById('edit-event-description').value.trim();
-        
-        if (!title || !description) {
-          showToast('Please fill in all fields', 'danger');
-          return;
-        }
-        
-        const token = localStorage.getItem('token');
-        
-        // Update the event
-        saveEventBtn.disabled = true;
-        saveEventBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-        
-        fetch(`${API_BASE_URL}/events/${eventId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ title, description })
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          // Update the UI
-          document.getElementById('event-title').textContent = title;
-          document.getElementById('event-description').textContent = description;
-          
-          // Close the modal and show success message
-          editEventModal.hide();
-          showToast('Event updated successfully', 'success');
-        })
-        .catch(error => {
-          console.error('Error updating event:', error);
-          showToast(`Failed to update event: ${error.message}`, 'danger');
-        })
-        .finally(() => {
-          saveEventBtn.disabled = false;
-          saveEventBtn.textContent = 'Save Changes';
-        });
-      });
+  const editEventForm = document.getElementById('edit-event-form');
+  const saveEventBtn = document.getElementById('save-event-btn');
+  const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
 
-      // Handle delete button click
-      document.getElementById('delete-event-btn').addEventListener('click', function() {
-        if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-          const token = localStorage.getItem('token');
-          const deleteBtn = this;
-          
-          // Show loading state
-          deleteBtn.disabled = true;
-          deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
-          
-          // Get club ID from the URL in the breadcrumb
-          const clubLinkElement = document.getElementById('club-link');
-          const clubId = clubLinkElement.href.split('id=')[1];
-          
-          fetch(`${API_BASE_URL}/events/${eventId}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(data => {
-            showToast('Event deleted successfully', 'success');
-            // Redirect to club page after successful deletion
-            setTimeout(() => {
-              window.location.href = `club.html?id=${clubId}`;
-            }, 1500);
-          })
-          .catch(error => {
-            console.error('Error deleting event:', error);
-            showToast(`Failed to delete event: ${error.message}`, 'danger');
-            deleteBtn.disabled = false;
-            deleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Delete Event';
-          });
-        }
-      });
+  document.getElementById('editEventModal').addEventListener('show.bs.modal', function() {
+    document.getElementById('edit-event-title').value = document.getElementById('event-title').textContent;
+    document.getElementById('edit-event-description').value = document.getElementById('event-description').textContent;
+  });
+
+  saveEventBtn.addEventListener('click', function() {
+    const title = document.getElementById('edit-event-title').value.trim();
+    const description = document.getElementById('edit-event-description').value.trim();
+    
+    if (!title || !description) {
+      showToast('Please fill in all fields', 'danger');
+      return;
+    }
+    
+    const token = localStorage.getItem('token');
+    
+    saveEventBtn.disabled = true;
+    saveEventBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+    
+    fetch(`${API_BASE_URL}/events/${eventId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ title, description })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      document.getElementById('event-title').textContent = title;
+      document.getElementById('event-description').textContent = description;
+      editEventModal.hide();
+      showToast('Event updated successfully', 'success');
+    })
+    .catch(error => {
+      console.error('Error updating event:', error);
+      showToast(`Failed to update event: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+      saveEventBtn.disabled = false;
+      saveEventBtn.textContent = 'Save Changes';
     });
+  });
 
-    // Function to show event details
-    function showEventDetails(eventId) {
-      const titleElement = document.getElementById('event-title');
-      const descriptionElement = document.getElementById('event-description');
-      const dateElement = document.getElementById('event-date');
-      const formattedDateElement = document.getElementById('event-formatted-date');
-      const clubLinkElement = document.getElementById('club-link');
-      const eventClubLinkElement = document.getElementById('event-club-link');
-      const privacyBadgeElement = document.getElementById('event-privacy-badge');
-      const loadingElement = document.getElementById('event-loading');
-      const contentElement = document.getElementById('event-content');
-      const errorElement = document.getElementById('event-error');
-      const actionsContainer = document.getElementById('event-actions');
-      const editButton = document.getElementById('edit-event-btn');
-      const deleteButton = document.getElementById('delete-event-btn');
-
-      // Show loading state
-      if (loadingElement) loadingElement.classList.remove('d-none');
-      if (contentElement) contentElement.classList.add('d-none');
-      if (errorElement) errorElement.classList.add('d-none');
-      
-      // Hide edit and delete buttons by default
-      if (editButton) editButton.classList.add('d-none');
-      if (deleteButton) deleteButton.classList.add('d-none');
-
-      // Get the token from localStorage
+  document.getElementById('delete-event-btn').addEventListener('click', function() {
+    if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
       const token = localStorage.getItem('token');
+      const deleteBtn = this;
       
-      // Fetch event details
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+      
+      const clubLinkElement = document.getElementById('club-link');
+      const encodedClubId = clubLinkElement.href.split('id=')[1];
+
       fetch(`${API_BASE_URL}/events/${eventId}`, {
+        method: 'DELETE',
         headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Authorization': `Bearer ${token}`
         }
       })
       .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         return response.json();
       })
       .then(data => {
-        if (loadingElement) loadingElement.classList.add('d-none');
-        if (contentElement) contentElement.classList.remove('d-none');
-        
-        // Update event details
-        if (titleElement) titleElement.textContent = data.title || 'Untitled Event';
-        if (descriptionElement) descriptionElement.textContent = data.description || 'No description provided';
-
-        // Format and display date
-        const eventDate = data.created_at ? new Date(data.created_at) : new Date();
-        if (dateElement) dateElement.textContent = eventDate.toLocaleDateString();
-        
-        if (formattedDateElement) {
-          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-          formattedDateElement.textContent = eventDate.toLocaleDateString('en-US', options);
-        }
-        
-        // Set privacy badge
-        if (privacyBadgeElement) {
-          const isPrivate = data.private === 1;
-          privacyBadgeElement.innerHTML = `
-            <i class="fas ${isPrivate ? 'fa-lock' : 'fa-lock-open'}"></i> 
-            ${isPrivate ? 'Private' : 'Public'}
-          `;
-        }
-        
-        // Update club links
-        if (clubLinkElement && data.club_id) {
-          clubLinkElement.href = `club.html?id=${data.club_id}`;
-        }
-        
-        if (eventClubLinkElement && data.club_id) {
-          eventClubLinkElement.href = `club.html?id=${data.club_id}`;
-          
-          // Fetch club name
-          fetch(`${API_BASE_URL}/clubs/${data.club_id}`, {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : ''
-            }
-          })
-          .then(response => response.json())
-          .then(clubData => {
-            // Set club name
-            eventClubLinkElement.textContent = clubData.name || 'Club';
-            if (clubLinkElement) clubLinkElement.textContent = clubData.name;
-            
-            // Get current user ID from token
-            const currentUserId = localStorage.getItem('userId');
-            console.log('Current user ID:', currentUserId);
-            console.log('Event creator ID:', data.created_by);
-            console.log('Club owner ID:', clubData.owner_id);
-            
-            // Check if current user is the event creator
-            if (data.created_by && currentUserId == data.created_by) {
-              console.log('User is the event creator, showing edit buttons');
-              // Event creator can always edit/delete
-              if (editButton) editButton.classList.remove('d-none');
-              if (deleteButton) deleteButton.classList.remove('d-none');
-              return;
-            }
-            
-            // Check if current user is the club owner
-            if (clubData.owner_id && currentUserId == clubData.owner_id) {
-              console.log('User is the club owner, showing edit buttons');
-              // Club owner can edit/delete events
-              if (editButton) editButton.classList.remove('d-none');
-              if (deleteButton) deleteButton.classList.remove('d-none');
-              return;
-            }
-            
-            // If not creator or owner, check if user is an admin
-            console.log('Checking if user is admin for club:', data.club_id);
-            fetch(`${API_BASE_URL}/clubs/${data.club_id}/membership`, {
-              headers: {
-                'Authorization': token ? `Bearer ${token}` : ''
-              }
-            })
-            .then(response => response.json())
-            .then(memberData => {
-              console.log('Membership data:', memberData);
-              
-              if (memberData && memberData.isMember && memberData.membership) {
-                console.log('User role in club:', memberData.membership.role);
-                
-                // Show edit/delete buttons only for admins
-                if (memberData.membership.role === 'admin') {
-                  console.log('User is an admin, showing edit buttons');
-                  if (editButton) editButton.classList.remove('d-none');
-                  if (deleteButton) deleteButton.classList.remove('d-none');
-                } else {
-                  console.log('User is a regular member, hiding edit buttons');
-                  // Keep buttons hidden for regular members
-                  if (editButton) editButton.classList.add('d-none');
-                  if (deleteButton) deleteButton.classList.add('d-none');
-                }
-              } else {
-                console.log('User is not a member of this club');
-                // Not a member, keep buttons hidden
-                if (editButton) editButton.classList.add('d-none');
-                if (deleteButton) deleteButton.classList.add('d-none');
-              }
-            })
-            .catch(error => {
-              console.error('Error checking membership role:', error);
-              // On error, keep buttons hidden
-              if (editButton) editButton.classList.add('d-none');
-              if (deleteButton) deleteButton.classList.add('d-none');
-            });
-          })
-          .catch(error => {
-            console.error('Error fetching club details:', error);
-            eventClubLinkElement.textContent = 'Club';
-          });
-        }
+        showToast('Event deleted successfully', 'success');
+        setTimeout(() => {
+          window.location.href = `club.html?id=${encodedClubId}`;
+        }, 1500);
       })
       .catch(error => {
-        console.error('Error fetching event details:', error);
-        if (loadingElement) loadingElement.classList.add('d-none');
-        if (errorElement) {
-          errorElement.classList.remove('d-none');
-          errorElement.querySelector('.error-message').textContent = `Failed to load event details: ${error.message}`;
-        }
+        console.error('Error deleting event:', error);
+        showToast(`Failed to delete event: ${error.message}`, 'danger');
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Delete Event';
       });
     }
+  });
+});
 
-    // Function to show toast messages
-    function showToast(message, type = 'info') {
-      const toastContainer = document.querySelector('.toast-container');
-      const toastId = `toast-${Date.now()}`;
-      
-      const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-          <div class="d-flex">
-            <div class="toast-body">
-              ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-          </div>
-        </div>
-      `;
-      
-      toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-      
-      const toastElement = document.getElementById(toastId);
-      const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
-      
-      toast.show();
-      
-      // Remove toast from DOM after it's hidden
-      toastElement.addEventListener('hidden.bs.toast', function () {
-        toastElement.remove();
+// Function to load event details
+function showEventDetails(eventId) {
+  const titleElement = document.getElementById('event-title');
+  const descriptionElement = document.getElementById('event-description');
+  const dateElement = document.getElementById('event-date');
+  const formattedDateElement = document.getElementById('event-formatted-date');
+  const clubLinkElement = document.getElementById('club-link');
+  const eventClubLinkElement = document.getElementById('event-club-link');
+  const privacyBadgeElement = document.getElementById('event-privacy-badge');
+  const loadingElement = document.getElementById('event-loading');
+  const contentElement = document.getElementById('event-content');
+  const errorElement = document.getElementById('event-error');
+
+  if (loadingElement) loadingElement.classList.remove('d-none');
+  if (contentElement) contentElement.classList.add('d-none');
+  if (errorElement) errorElement.classList.add('d-none');
+
+  const token = localStorage.getItem('token');
+  
+  fetch(`${API_BASE_URL}/events/${eventId}`, {
+    headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+  })
+  .then(response => {
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    return response.json();
+  })
+  .then(data => {
+    if (loadingElement) loadingElement.classList.add('d-none');
+    if (contentElement) contentElement.classList.remove('d-none');
+
+    titleElement.textContent = data.title || 'Untitled Event';
+    descriptionElement.textContent = data.description || 'No description provided';
+
+    const eventDate = data.created_at ? new Date(data.created_at) : new Date();
+    dateElement.textContent = eventDate.toLocaleDateString();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    formattedDateElement.textContent = eventDate.toLocaleDateString('en-US', options);
+
+    const isPrivate = data.private === 1;
+    privacyBadgeElement.innerHTML = `<i class="fas ${isPrivate ? 'fa-lock' : 'fa-lock-open'}"></i> ${isPrivate ? 'Private' : 'Public'}`;
+
+    if (data.club_id) {
+      const encodedClubId = btoa(data.club_id.toString());
+      clubLinkElement.href = `club.html?id=${encodedClubId}`;
+      eventClubLinkElement.href = `club.html?id=${encodedClubId}`;
+
+      fetch(`${API_BASE_URL}/clubs/${data.club_id}`, {
+        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+      })
+      .then(response => response.json())
+      .then(clubData => {
+        eventClubLinkElement.textContent = clubData.name || 'Club';
+        clubLinkElement.textContent = clubData.name;
+      })
+      .catch(error => {
+        console.error('Error fetching club details:', error);
+        eventClubLinkElement.textContent = 'Club';
       });
     }
-  </script>
+  })
+  .catch(error => {
+    console.error('Error fetching event details:', error);
+    if (loadingElement) loadingElement.classList.add('d-none');
+    if (errorElement) {
+      errorElement.classList.remove('d-none');
+      errorElement.querySelector('.error-message').textContent = `Failed to load event details: ${error.message}`;
+    }
+  });
+}
+
+// Function to show toast notifications
+function showToast(message, type = 'info') {
+  const toastContainer = document.querySelector('.toast-container');
+  const toastId = `toast-${Date.now()}`;
+
+  const toastHtml = `
+    <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  `;
+
+  toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+  const toastElement = document.getElementById(toastId);
+  const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
+  toast.show();
+  toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
+}
+</script>
 </body>
 </html>

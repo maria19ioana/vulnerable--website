@@ -466,9 +466,47 @@
       updateNavbarLinks();
     }
 
+    const canEdit = localStorage.getItem('canEdit') === 'true';
+    if (canEdit) {
+      const clubActionsContainer = document.getElementById('club-actions');
+      if (clubActionsContainer) {
+        clubActionsContainer.innerHTML = `
+          <button class="btn btn-outline-primary me-2" id="edit-club-btn">
+            <i class="fas fa-edit"></i> Edit Club
+          </button>
+          <button class="btn btn-outline-danger" id="delete-club-btn">
+            <i class="fas fa-trash-alt"></i> Delete Club
+          </button>
+        `;
+      }
+    }
+});
+
+
     // Get the club ID from URL parameters
-    const params = new URLSearchParams(window.location.search);
-    const clubId = params.get('id');
+	const params = new URLSearchParams(window.location.search);
+	let clubId = params.get('id');
+
+	if (!clubId) {
+  		document.getElementById('club-name').textContent = 'Club Not Found';
+  		document.getElementById('club-description').innerHTML = '<div class="alert alert-danger">No club ID provided in the URL. Please go back and select a club.</div>';
+  		document.getElementById('membership-section').classList.add('d-none');
+  	return;
+	}
+
+	try {
+  		// Decode Base64 encoded ID
+  		clubId = atob(clubId);
+	} catch (error) {
+  	console.error('Invalid ID format:', error);
+  	document.getElementById('club-name').textContent = 'Invalid Club ID';
+  	document.getElementById('club-description').innerHTML = '<div class="alert alert-danger">Invalid club ID provided in the URL.</div>';
+  	document.getElementById('membership-section').classList.add('d-none');
+  	return;
+	}
+
+	console.log(`Loading club with ID: ${clubId}`);
+
     
     if (!clubId) {
       document.getElementById('club-name').textContent = 'Club Not Found';
@@ -489,7 +527,8 @@
     const createEventBtn = document.getElementById('create-event-btn');
     if (createEventBtn) {
       createEventBtn.addEventListener('click', () => {
-        window.location.href = `create-event.html?club=${clubId}`;
+	const encodedClubId = btoa(clubId.toString())
+        window.location.href = `create-event.html?club=${encodedClubId}`;
       });
     }
     
@@ -497,7 +536,8 @@
     const inviteMemberBtn = document.getElementById('invite-member-btn');
     if (inviteMemberBtn) {
       inviteMemberBtn.addEventListener('click', () => {
-        window.location.href = `invite.html?club=${clubId}`;
+	const encodedClubId = btoa(clubId.toString())
+        window.location.href = `invite.html?club=${encodedClubId}`;
       });
     }
     

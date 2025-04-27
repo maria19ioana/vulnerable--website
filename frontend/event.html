@@ -597,11 +597,17 @@
       const contentElement = document.getElementById('event-content');
       const errorElement = document.getElementById('event-error');
       const actionsContainer = document.getElementById('event-actions');
+      const editButton = document.getElementById('edit-event-btn');
+      const deleteButton = document.getElementById('delete-event-btn');
 
       // Show loading state
       if (loadingElement) loadingElement.classList.remove('d-none');
       if (contentElement) contentElement.classList.add('d-none');
       if (errorElement) errorElement.classList.add('d-none');
+      
+      // Hide edit and delete buttons by default
+      if (editButton) editButton.classList.add('d-none');
+      if (deleteButton) deleteButton.classList.add('d-none');
 
       // Get the token from localStorage
       const token = localStorage.getItem('token');
@@ -660,8 +666,72 @@
           })
           .then(response => response.json())
           .then(clubData => {
+            // Set club name
             eventClubLinkElement.textContent = clubData.name || 'Club';
             if (clubLinkElement) clubLinkElement.textContent = clubData.name;
+            
+            // Get current user ID from token
+            const currentUserId = localStorage.getItem('userId');
+            console.log('Current user ID:', currentUserId);
+            console.log('Event creator ID:', data.created_by);
+            console.log('Club owner ID:', clubData.owner_id);
+            
+            // Check if current user is the event creator
+            if (data.created_by && currentUserId == data.created_by) {
+              console.log('User is the event creator, showing edit buttons');
+              // Event creator can always edit/delete
+              if (editButton) editButton.classList.remove('d-none');
+              if (deleteButton) deleteButton.classList.remove('d-none');
+              return;
+            }
+            
+            // Check if current user is the club owner
+            if (clubData.owner_id && currentUserId == clubData.owner_id) {
+              console.log('User is the club owner, showing edit buttons');
+              // Club owner can edit/delete events
+              if (editButton) editButton.classList.remove('d-none');
+              if (deleteButton) deleteButton.classList.remove('d-none');
+              return;
+            }
+            
+            // If not creator or owner, check if user is an admin
+            console.log('Checking if user is admin for club:', data.club_id);
+            fetch(`${API_BASE_URL}/clubs/${data.club_id}/membership`, {
+              headers: {
+                'Authorization': token ? `Bearer ${token}` : ''
+              }
+            })
+            .then(response => response.json())
+            .then(memberData => {
+              console.log('Membership data:', memberData);
+              
+              if (memberData && memberData.isMember && memberData.membership) {
+                console.log('User role in club:', memberData.membership.role);
+                
+                // Show edit/delete buttons only for admins
+                if (memberData.membership.role === 'admin') {
+                  console.log('User is an admin, showing edit buttons');
+                  if (editButton) editButton.classList.remove('d-none');
+                  if (deleteButton) deleteButton.classList.remove('d-none');
+                } else {
+                  console.log('User is a regular member, hiding edit buttons');
+                  // Keep buttons hidden for regular members
+                  if (editButton) editButton.classList.add('d-none');
+                  if (deleteButton) deleteButton.classList.add('d-none');
+                }
+              } else {
+                console.log('User is not a member of this club');
+                // Not a member, keep buttons hidden
+                if (editButton) editButton.classList.add('d-none');
+                if (deleteButton) deleteButton.classList.add('d-none');
+              }
+            })
+            .catch(error => {
+              console.error('Error checking membership role:', error);
+              // On error, keep buttons hidden
+              if (editButton) editButton.classList.add('d-none');
+              if (deleteButton) deleteButton.classList.add('d-none');
+            });
           })
           .catch(error => {
             console.error('Error fetching club details:', error);

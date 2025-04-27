@@ -1008,17 +1008,49 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadEventClubs() {
     console.log('Loading clubs for event creation...');
     try {
-        // Fetch clubs from dashboard endpoint
+        // First fetch clubs from dashboard endpoint (owned clubs)
         const data = await apiGet('/dashboard', true);
-        const clubs = data.success ? data.clubs : data;
+        const ownedClubs = data.success ? data.clubs : data;
         const selectEl = document.getElementById('eventClub');
         if (!selectEl) return;
-        clubs.forEach(club => {
+        
+        // Add owned clubs to the dropdown
+        ownedClubs.forEach(club => {
             const option = document.createElement('option');
             option.value = club.id;
-            option.textContent = club.name;
+            option.textContent = club.name + ' (Owner)';
             selectEl.appendChild(option);
         });
+        
+        // Now fetch clubs where user is an admin but not owner
+        const memberships = await getUserClubMemberships();
+        console.log('Checking memberships for admin roles:', memberships);
+        
+        // Map owned club IDs for filtering
+        const ownedClubIds = ownedClubs.map(club => String(club.id));
+        
+        // Filter for admin memberships that aren't in owned clubs
+        const adminClubs = memberships.filter(club => 
+            club.role === 'admin' && !ownedClubIds.includes(String(club.club_id))
+        );
+        
+        console.log('Admin clubs for dropdown:', adminClubs);
+        
+        // Add admin clubs to the dropdown
+        adminClubs.forEach(club => {
+            const option = document.createElement('option');
+            option.value = club.club_id;
+            option.textContent = club.name + ' (Admin)';
+            selectEl.appendChild(option);
+        });
+        
+        // If no clubs available, show a message
+        if (ownedClubs.length === 0 && adminClubs.length === 0) {
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = "No clubs available - create or join a club first";
+            selectEl.appendChild(option);
+        }
     } catch (err) {
         console.error('Error loading clubs for event dropdown:', err);
     }
@@ -1143,8 +1175,26 @@ function loadClubDetails(clubId) {
         document.getElementById('create-event-btn').classList.remove('d-none');
         document.getElementById('invite-member-btn').classList.remove('d-none');
       } else if (token) {
-        // Show create event button for logged-in users (members)
-        document.getElementById('create-event-btn').classList.remove('d-none');
+        // Only check for membership role if not the owner
+        apiGet(`/clubs/${clubId}/membership`, true)
+          .then(response => {
+            if (response && response.isMember && response.membership) {
+              // If the user is an admin, show the Create Event button
+              if (response.membership.role === 'admin') {
+                document.getElementById('create-event-btn').classList.remove('d-none');
+              } else {
+                // Regular members should not see the Create Event button
+                document.getElementById('create-event-btn').classList.add('d-none');
+              }
+            } else {
+              // Non-members should not see the button
+              document.getElementById('create-event-btn').classList.add('d-none');
+            }
+          })
+          .catch(err => {
+            console.error('Error checking membership role:', err);
+            document.getElementById('create-event-btn').classList.add('d-none');
+          });
       }
       
       // Load club members
@@ -1565,6 +1615,10 @@ function showEventDetails(eventId) {
   // Get the token from localStorage
   const token = localStorage.getItem('token');
   
+  // Hide edit and delete buttons by default
+  if (editButton) editButton.classList.add('d-none');
+  if (deleteButton) deleteButton.classList.add('d-none');
+  
   // Fetch event details
   fetch(`${API_BASE_URL}/events/${eventId}`, {
     headers: {
@@ -1606,15 +1660,31 @@ function showEventDetails(eventId) {
       });
     }
     
-    // Check if current user is the owner and show edit/delete buttons
+    // Check if current user is the event creator
     if (token && data.created_by) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const currentUserId = payload.id;
         
         if (currentUserId === data.created_by) {
+          // Event creator can always edit/delete
           if (editButton) editButton.classList.remove('d-none');
           if (deleteButton) deleteButton.classList.remove('d-none');
+        } else if (data.club_id) {
+          // If not the creator, check club role (owner/admin)
+          apiGet(`/clubs/${data.club_id}/membership`, true)
+            .then(response => {
+              if (response && response.isMember && response.membership) {
+                // If user is club owner or admin, show edit button
+                if (response.membership.role === 'owner' || response.membership.role === 'admin') {
+                  if (editButton) editButton.classList.remove('d-none');
+                  if (deleteButton) deleteButton.classList.remove('d-none');
+                }
+              }
+            })
+            .catch(error => {
+              console.error('Error checking membership role:', error);
+            });
         }
       } catch (error) {
         console.error('Error parsing token:', error);

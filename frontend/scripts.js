@@ -589,25 +589,26 @@ function loadClubs() {
     const memberClubsListEl = document.getElementById('member-clubs-list');
     const memberClubsCountEl = document.getElementById('member-clubs-count');
     const noMembershipsEl = document.getElementById('no-memberships');
-    
+
     if (clubsCountEl) {
         console.log('Loading clubs for dashboard...');
-        
+
         // Check for cached clubs from a recent creation
         const shouldRefresh = localStorage.getItem('dashboardRefresh') === 'true';
         const cachedClubs = JSON.parse(localStorage.getItem('dashboardClubs') || '[]');
-        
+
         if (shouldRefresh && cachedClubs.length > 0) {
             console.log('Using cached clubs data:', cachedClubs);
             // Clear the refresh flag
             localStorage.removeItem('dashboardRefresh');
-            
+
             // Update UI with cached clubs
             clubsCountEl.textContent = cachedClubs.length;
-            
+
             if (activityListEl) {
                 let clubsHtml = '';
                 cachedClubs.forEach(club => {
+                    const encodedId = btoa(club.id.toString()); // 🛠 Move this OUTSIDE the template
                     clubsHtml += `
                     <div class="d-flex align-items-center border-bottom py-3">
                         <div class="btn-square bg-primary rounded-circle me-3">
@@ -618,45 +619,43 @@ function loadClubs() {
                             <small>You are the owner of this club</small>
                             ${club.eventCount ? `<small class="d-block text-muted">${club.eventCount} event(s)</small>` : ''}
                         </div>
-                        <a href="club.html?id=${club.id}" class="btn btn-sm btn-outline-primary">View</a>
+                        <a href="club.html?id=${encodedId}" class="btn btn-sm btn-outline-primary">View</a>
                     </div>
                     `;
                 });
                 activityListEl.innerHTML = clubsHtml;
             }
         }
-        
+
         // Always reload from server to get fresh data
         const xhr = new XMLHttpRequest();
         xhr.open('GET', `${API_BASE_URL}/dashboard`, true);
         xhr.setRequestHeader('Authorization', 'Bearer ' + getToken());
-        
+
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
                 console.log(`Clubs XHR status: ${xhr.status}`);
-                
+
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
                         console.log('Dashboard data loaded:', response);
-                        
+
                         // Handle both old and new API response formats
                         const clubs = response.success ? response.clubs : response;
-                        
+
                         // Store the latest clubs data in localStorage
                         localStorage.setItem('dashboardClubs', JSON.stringify(clubs));
-                        
+
                         // Update clubs count
                         clubsCountEl.textContent = clubs.length;
-                        
-                        // Load user's clubs and events
-                        loadUserClubsAndEvents();
-                        
+
                         // Update activity list if it exists
                         if (activityListEl) {
                             if (clubs.length > 0) {
                                 let clubsHtml = '';
                                 clubs.forEach(club => {
+                                    const encodedId = btoa(club.id.toString()); // 🛠 Again, OUTSIDE the template
                                     clubsHtml += `
                                     <div class="d-flex align-items-center border-bottom py-3">
                                         <div class="btn-square bg-primary rounded-circle me-3">
@@ -667,7 +666,7 @@ function loadClubs() {
                                             <small>You are the owner of this club</small>
                                             ${club.eventCount ? `<small class="d-block text-muted">${club.eventCount} event(s)</small>` : ''}
                                         </div>
-                                        <a href="club.html?id=${club.id}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="club.html?id=${encodedId}" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                     `;
                                 });
@@ -681,10 +680,10 @@ function loadClubs() {
                                 `;
                             }
                         }
-                        
+
                         // Load clubs the user is a member of (but didn't create)
                         loadUserMemberships();
-                        
+
                     } catch (e) {
                         console.error('Error parsing dashboard data:', e);
                         if (activityListEl) {
@@ -699,14 +698,14 @@ function loadClubs() {
                 }
             }
         };
-        
+
         xhr.onerror = function() {
             console.error('Dashboard XHR error:', xhr);
             if (activityListEl) {
                 activityListEl.innerHTML = `<div class="alert alert-danger">Network error loading clubs</div>`;
             }
         };
-        
+
         xhr.send();
     }
 }
@@ -939,6 +938,7 @@ if (window.location.pathname.includes('dashboard.html')) {
     loadClubs();
 }
 
+
 // ========== LOGOUT ==========
 document.addEventListener('click', (e) => {
     if (e.target.id === 'logoutBtn') {
@@ -1008,64 +1008,17 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadEventClubs() {
     console.log('Loading clubs for event creation...');
     try {
-        // First fetch clubs from dashboard endpoint (owned clubs)
+        // Fetch clubs from dashboard endpoint
         const data = await apiGet('/dashboard', true);
-        const ownedClubs = data.success ? data.clubs : data;
+        const clubs = data.success ? data.clubs : data;
         const selectEl = document.getElementById('eventClub');
         if (!selectEl) return;
-        
-        // Add owned clubs to the dropdown
-        ownedClubs.forEach(club => {
+        clubs.forEach(club => {
             const option = document.createElement('option');
-            option.value = club.id;
-            option.textContent = club.name + ' (Owner)';
+            option.value = btoa(club.id.toString());
+            option.textContent = club.name;
             selectEl.appendChild(option);
         });
-        
-        // Now fetch clubs where user is an admin but not owner
-        const memberships = await getUserClubMemberships();
-        console.log('Checking memberships for admin roles:', memberships);
-        
-        // Map owned club IDs for filtering
-        const ownedClubIds = ownedClubs.map(club => String(club.id));
-        
-        // Filter for admin memberships that aren't in owned clubs
-        const adminClubs = memberships.filter(club => 
-            club.role === 'admin' && !ownedClubIds.includes(String(club.club_id))
-        );
-        
-        console.log('Admin clubs for dropdown:', adminClubs);
-        
-        // Add admin clubs to the dropdown
-        adminClubs.forEach(club => {
-            const option = document.createElement('option');
-            option.value = club.club_id;
-            option.textContent = club.name + ' (Admin)';
-            selectEl.appendChild(option);
-        });
-        
-        // If no clubs available, show a message
-        if (ownedClubs.length === 0 && adminClubs.length === 0) {
-            const option = document.createElement('option');
-            option.value = "";
-            option.textContent = "No clubs available - create or join a club first";
-            selectEl.appendChild(option);
-        }
-        
-        // Check if club ID is provided in URL parameter and pre-select it
-        const urlParams = new URLSearchParams(window.location.search);
-        const clubIdFromUrl = urlParams.get('club');
-        
-        if (clubIdFromUrl) {
-            console.log(`Club ID ${clubIdFromUrl} provided in URL, pre-selecting it`);
-            // Find and select the option with the matching club ID
-            for (let i = 0; i < selectEl.options.length; i++) {
-                if (selectEl.options[i].value === clubIdFromUrl) {
-                    selectEl.selectedIndex = i;
-                    break;
-                }
-            }
-        }
     } catch (err) {
         console.error('Error loading clubs for event dropdown:', err);
     }
@@ -1085,7 +1038,9 @@ if (createEventForm) {
         // Gather form values
         const title = document.getElementById('eventName').value.trim();
         const description = document.getElementById('eventDescription').value.trim();
-        const clubId = document.getElementById('eventClub').value;
+        const encodedClubId = document.getElementById('eventClub').value;
+        const clubId = atob(encodedClubId); // <--- decode here
+        
         // For now, we'll set private to false by default
         const isPrivate = false;
 
@@ -1094,7 +1049,6 @@ if (createEventForm) {
             return;
         }
 
-        // Show loading state
         messageEl.innerHTML = `<div class="alert alert-info">Creating event...</div>`;
 
         try {
@@ -1113,7 +1067,6 @@ if (createEventForm) {
 
             if (response.ok) {
                 messageEl.innerHTML = `<div class="alert alert-success">Event created successfully. Redirecting to dashboard...</div>`;
-                // Redirect to dashboard after creating event
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
                 }, 1500);
@@ -1190,26 +1143,8 @@ function loadClubDetails(clubId) {
         document.getElementById('create-event-btn').classList.remove('d-none');
         document.getElementById('invite-member-btn').classList.remove('d-none');
       } else if (token) {
-        // Only check for membership role if not the owner
-        apiGet(`/clubs/${clubId}/membership`, true)
-          .then(response => {
-            if (response && response.isMember && response.membership) {
-              // If the user is an admin, show the Create Event button
-              if (response.membership.role === 'admin') {
-                document.getElementById('create-event-btn').classList.remove('d-none');
-              } else {
-                // Regular members should not see the Create Event button
-                document.getElementById('create-event-btn').classList.add('d-none');
-              }
-            } else {
-              // Non-members should not see the button
-              document.getElementById('create-event-btn').classList.add('d-none');
-            }
-          })
-          .catch(err => {
-            console.error('Error checking membership role:', err);
-            document.getElementById('create-event-btn').classList.add('d-none');
-          });
+        // Show create event button for logged-in users (members)
+        document.getElementById('create-event-btn').classList.remove('d-none');
       }
       
       // Load club members
@@ -1313,7 +1248,7 @@ function displayEvents(events, eventList, append = false) {
   if (!append) {
     eventList.innerHTML = '';
   }
-  
+
   if (!events || events.length === 0) {
     eventList.innerHTML = `
       <div class="col-12 text-center py-5">
@@ -1324,7 +1259,7 @@ function displayEvents(events, eventList, append = false) {
     `;
     return;
   }
-  
+
   // Display events
   events.forEach(event => {
     const eventDate = new Date(event.date || new Date());
@@ -1334,7 +1269,9 @@ function displayEvents(events, eventList, append = false) {
       month: 'long', 
       day: 'numeric' 
     });
-    
+
+    const encodedEventId = btoa(event.id.toString()); // 🛠 ENCODE THE ID
+
     const eventCard = document.createElement('div');
     eventCard.className = 'col-md-6 col-lg-4 mb-4';
     eventCard.innerHTML = `
@@ -1347,7 +1284,7 @@ function displayEvents(events, eventList, append = false) {
           <p class="card-text">${event.description || 'No description provided'}</p>
         </div>
         <div class="card-footer bg-transparent">
-          <a href="event.html?id=${event.id}" class="btn btn-sm btn-outline-primary">
+          <a href="event.html?id=${encodedEventId}" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-info-circle me-1"></i> View Details
           </a>
         </div>
@@ -1630,10 +1567,6 @@ function showEventDetails(eventId) {
   // Get the token from localStorage
   const token = localStorage.getItem('token');
   
-  // Hide edit and delete buttons by default
-  if (editButton) editButton.classList.add('d-none');
-  if (deleteButton) deleteButton.classList.add('d-none');
-  
   // Fetch event details
   fetch(`${API_BASE_URL}/events/${eventId}`, {
     headers: {
@@ -1675,31 +1608,15 @@ function showEventDetails(eventId) {
       });
     }
     
-    // Check if current user is the event creator
+    // Check if current user is the owner and show edit/delete buttons
     if (token && data.created_by) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const currentUserId = payload.id;
         
         if (currentUserId === data.created_by) {
-          // Event creator can always edit/delete
           if (editButton) editButton.classList.remove('d-none');
           if (deleteButton) deleteButton.classList.remove('d-none');
-        } else if (data.club_id) {
-          // If not the creator, check club role (owner/admin)
-          apiGet(`/clubs/${data.club_id}/membership`, true)
-            .then(response => {
-              if (response && response.isMember && response.membership) {
-                // If user is club owner or admin, show edit button
-                if (response.membership.role === 'owner' || response.membership.role === 'admin') {
-                  if (editButton) editButton.classList.remove('d-none');
-                  if (deleteButton) deleteButton.classList.remove('d-none');
-                }
-              }
-            })
-            .catch(error => {
-              console.error('Error checking membership role:', error);
-            });
         }
       } catch (error) {
         console.error('Error parsing token:', error);
@@ -1950,10 +1867,7 @@ async function acceptInvite(inviteId, buttonEl) {
       // Force reload invites to update UI
       forceReloadInvites();
       
-      // Refresh club memberships
-      if (typeof loadUserClubsAndEvents === 'function') {
-        loadUserClubsAndEvents();
-      }
+      
     } else {
       // Show error and reset button
       alert('Error accepting invite: ' + (response?.message || 'Unknown error'));

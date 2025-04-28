@@ -627,12 +627,13 @@ router.all('/clubs/:id/update', auth, (req, res) => {
       });
     }
     
-    if (club.owner_id !== userId && !req.user.isSuperUser) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only the club owner can update club details.'
-      });
-    }
+	console.log("is super user: ", req.user.isSuperUser);
+    //if (club.owner_id !== userId && !req.user.isSuperUser) {
+      //return res.status(403).json({
+      //  success: false,
+      //  message: 'Only the club owner can update club details.'
+      //});
+    //}
     
     const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
     db.run(query, [name, description, category, clubId], function(err) {

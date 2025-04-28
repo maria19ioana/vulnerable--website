@@ -319,7 +319,7 @@ app.put('/clubs/:id', auth, (req, res) => {
         });
       }
       
-      if (club.owner_id !== userId) {
+      if (club.owner_id !== userId && !req.user.isSuperUser) {
         return res.status(403).json({
           success: false,
           message: 'Only the club owner can update club details.'

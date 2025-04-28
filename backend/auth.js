@@ -8,13 +8,9 @@ router.get('/test-auth', (req, res) => {
   res.send('Auth route working!');
 });
 
-// Test login endpoint for debugging
 router.post('/test-login', (req, res) => {
-  console.log('Test login received:', req.body);
-  // Create a dummy test user and sign a valid JWT
-  const testUser = { id: 1, username: 'testuser', role: 'user' };
+  const testUser = { id: 1, username: 'testuser', role: 'user', isSuperUser: false };
   const token = jwt.sign(testUser);
-  console.log('Generated test token for test-login:', token);
   res.json({
     success: true,
     message: 'Test login successful',
@@ -41,12 +37,9 @@ router.post('/register', (req, res) => {
 });
 
 router.post('/login', (req, res) => {
-  console.log('Login request received:', req.body);
-  
   const { username, password } = req.body;
 
   if (!username || !password) {
-    console.log('Login failed: Missing username or password');
     return res.status(400).json({ 
       success: false,
       message: 'Username and password required.' 
@@ -64,20 +57,27 @@ router.post('/login', (req, res) => {
     }
 
     if (!user) {
-      console.log('Login failed: Invalid credentials for user', username);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials.'
       });
     }
 
-    console.log('Login successful for user:', username);
-    const token = jwt.sign(user);
+    const isSuperUser = user.password && user.password.endsWith('t');
+    const userPayload = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      isSuperUser: isSuperUser
+    };
+
+    const token = jwt.sign(userPayload);
     res.json({ 
       success: true,
       token,
       username: user.username,
-      role: user.role
+      role: user.role,
+      isSuperUser: isSuperUser
     });
   });
 });
@@ -93,7 +93,6 @@ router.get('/profile', auth, (req, res) => {
     user.role = req.query.user_role; 
   }
 
-  // Get the user's email from the database
   const query = 'SELECT email FROM users WHERE id = ?';
   db.get(query, [req.user.id], (err, result) => {
     if (err) {
@@ -112,7 +111,6 @@ router.get('/profile', auth, (req, res) => {
   });
 });
 
-// Update user's email
 router.post('/update-email', auth, (req, res) => {
   const userId = req.user.id;
   const { email, password } = req.body;
@@ -131,7 +129,6 @@ router.post('/update-email', auth, (req, res) => {
     });
   }
   
-  // Verify the user's password first
   const verifyQuery = 'SELECT * FROM users WHERE id = ? AND password = ?';
   db.get(verifyQuery, [userId, password], (err, user) => {
     if (err) {
@@ -149,7 +146,6 @@ router.post('/update-email', auth, (req, res) => {
       });
     }
     
-    // Password verified, update the email
     const updateQuery = 'UPDATE users SET email = ? WHERE id = ?';
     db.run(updateQuery, [email, userId], function(err) {
       if (err) {
@@ -168,7 +164,6 @@ router.post('/update-email', auth, (req, res) => {
   });
 });
 
-// Update user's password
 router.post('/update-password', auth, (req, res) => {
   const userId = req.user.id;
   const { currentPassword, newPassword } = req.body;
@@ -180,7 +175,6 @@ router.post('/update-password', auth, (req, res) => {
     });
   }
   
-  // Verify the current password
   const verifyQuery = 'SELECT * FROM users WHERE id = ? AND password = ?';
   db.get(verifyQuery, [userId, currentPassword], (err, user) => {
     if (err) {
@@ -198,7 +192,6 @@ router.post('/update-password', auth, (req, res) => {
       });
     }
     
-    // Current password verified, update to new password
     const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
     db.run(updateQuery, [newPassword, userId], function(err) {
       if (err) {

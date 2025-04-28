@@ -7,7 +7,6 @@ const auth = require('./middleware');
 router.get('/dashboard', auth, (req, res) => {
   const userId = req.user.id;
   
-  console.log('Dashboard request received for user ID:', userId);
 
   const query = 'SELECT * FROM clubs WHERE owner_id = ?';
   db.all(query, [userId], (err, clubs) => {
@@ -19,15 +18,11 @@ router.get('/dashboard', auth, (req, res) => {
         error: err.message
       });
     }
-
-    console.log(`Found ${clubs.length} clubs for user ID: ${userId}`);
     
-    // Get upcoming events count for each club (simplified version)
     const eventsQuery = 'SELECT COUNT(*) as eventCount, club_id FROM events GROUP BY club_id';
     db.all(eventsQuery, [], (eventsErr, eventCounts) => {
       if (eventsErr) {
         console.error('Error fetching event counts:', eventsErr);
-        // Continue with clubs only, don't fail the whole request
         return res.json({
           success: true,
           clubs: clubs,
@@ -36,7 +31,6 @@ router.get('/dashboard', auth, (req, res) => {
         });
       }
       
-      // Create event count map
       const eventCountMap = {};
       let totalEvents = 0;
       
@@ -45,7 +39,6 @@ router.get('/dashboard', auth, (req, res) => {
         totalEvents += count.eventCount;
       });
       
-      // Add event count to each club
       clubs.forEach(club => {
         club.eventCount = eventCountMap[club.id] || 0;
       });
@@ -75,11 +68,9 @@ router.get('/clubs/:club_id/events/view/:enc_event_id', auth, (req, res) => {
 });
 
 router.post('/clubs', auth, (req, res) => {
-  console.log('Create club request received');
   const { name, description, category } = req.body;
   
   if (!name) {
-    console.log('Error: Club name is required');
     return res.status(400).json({ success: false, message: 'Club name is required' });
   }
   
@@ -88,34 +79,29 @@ router.post('/clubs', auth, (req, res) => {
                  VALUES (?, ?, ?, ?)`;
                  
   db.run(query, [name, description, category, ownerId], function(err) {
+  if (err) {
+    console.error('Error creating club:', err);
+    return res.status(500).json({ success: false, message: 'Error creating club' });
+  }
+  
+  const clubId = this.lastID;
+  
+  const memberQuery = `INSERT INTO club_members (club_id, user_id, join_date, role) 
+                       VALUES (?, ?, datetime('now'), 'owner')`;
+  
+  db.run(memberQuery, [clubId, ownerId], function(err) {
     if (err) {
-      console.error('Error creating club:', err);
-      return res.status(500).json({ success: false, message: 'Error creating club' });
+      console.error('Error adding owner as club member:', err);
+      return res.status(500).json({ success: false, message: 'Error adding owner as club member' });
     }
     
-    const clubId = this.lastID;
-    
-    // Add owner as a member with owner role
-    const memberQuery = `INSERT INTO club_members (club_id, user_id, join_date, role) 
-                         VALUES (?, ?, datetime('now'), 'owner')`;
-    
-    db.run(memberQuery, [clubId, ownerId], function(err) {
-      if (err) {
-        console.error('Error adding owner as club member:', err);
-        // Don't fail the whole operation if this fails
-        console.log(`Club created with ID: ${clubId}, but owner not added as member`);
-      } else {
-        console.log(`Owner added as member for club ID: ${clubId}`);
-      }
-      
-      // Return success regardless of member addition
-      res.status(201).json({
-        success: true,
-        message: 'Club created successfully',
-        clubId: clubId
-      });
+    res.status(201).json({
+      success: true,
+      message: 'Club created successfully',
+      id: clubId
     });
   });
+});
 });
 
 router.post('/events/:id/edit', auth, (req, res) => {
@@ -126,7 +112,6 @@ router.post('/events/:id/edit', auth, (req, res) => {
     return res.status(400).send('Title and description required.');
   }
 
-  // No check if the user owns the event — vulnerable by design
   const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
   db.run(query, [title, description, eventId], function(err) {
     if (err) return res.status(500).send('Error editing event.');
@@ -136,7 +121,16 @@ router.post('/events/:id/edit', auth, (req, res) => {
 });
 
 router.get('/clubs/:id', auth, (req, res) => {
-  const clubId = req.params.id;
+  let clubId = req.params.id;
+
+  try {
+    const decoded = Buffer.from(clubId, 'base64').toString('utf-8');
+    if (!isNaN(decoded)) {
+      clubId = decoded; 
+    }
+  } catch (err) {
+    console.error('Failed to decode Base64 club ID:', err);
+  }
 
   const query = 'SELECT * FROM clubs WHERE id = ?';
   db.get(query, [clubId], (err, club) => {
@@ -226,10 +220,8 @@ router.get('/clubs/:club_id/events/:event_id', auth, (req, res) => {
   });
 });
 
-// Endpoint to list clubs for use in event creation dropdown
 router.get('/clubs', auth, (req, res) => {
   const userId = req.user.id;
-  console.log(`Listing clubs for user ID: ${userId}`);
   const query = 'SELECT id, name FROM clubs WHERE owner_id = ?';
   db.all(query, [userId], (err, clubs) => {
     if (err) {
@@ -240,26 +232,19 @@ router.get('/clubs', auth, (req, res) => {
   });
 });
 
-// Get all events for a club
 router.get('/clubs/:id/events', auth, (req, res) => {
-  const clubId = req.params.id;
-  console.log(`Club events request for club ID: ${clubId} by user ID: ${req.user ? req.user.id : 'unknown'}`);
-  
+  const clubId = req.params.id;  
   const query = 'SELECT * FROM events WHERE club_id = ?';
   db.all(query, [clubId], (err, events) => {
     if (err) {
       console.error('Error fetching events for club:', err);
       return res.status(500).json({ success: false, message: 'Error fetching events.' });
     }
-    console.log(`Found ${events.length} events for club ID: ${clubId}`);
     res.json(events);
   });
 });
 
-// Debug endpoint to check token validation
 router.get('/debug-auth', auth, (req, res) => {
-  console.log('Debug auth endpoint called');
-  console.log('User in request:', req.user);
   res.json({
     success: true,
     message: 'Your token is valid',
@@ -267,12 +252,8 @@ router.get('/debug-auth', auth, (req, res) => {
   });
 });
 
-// Get all members of a club
 router.get('/clubs/:id/members', auth, (req, res) => {
-  const clubId = req.params.id;
-  console.log(`Club members request for club ID: ${clubId} by user ID: ${req.user.id}`);
-  
-  // Join the club_members and users tables to get member details
+  const clubId = req.params.id;  
   const query = `
     SELECT cm.*, u.username, u.role as user_role 
     FROM club_members cm
@@ -289,7 +270,6 @@ router.get('/clubs/:id/members', auth, (req, res) => {
       });
     }
     
-    console.log(`Found ${members.length} members for club ID: ${clubId}`);
     res.json({
       success: true,
       members: members
@@ -297,13 +277,10 @@ router.get('/clubs/:id/members', auth, (req, res) => {
   });
 });
 
-// Check if current user is a member of a club
 router.get('/clubs/:id/membership', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
-  
-  console.log(`Membership check for club ID: ${clubId}, user ID: ${userId}`);
-  
+    
   const query = 'SELECT * FROM club_members WHERE club_id = ? AND user_id = ?';
   db.get(query, [clubId, userId], (err, membership) => {
     if (err) {
@@ -315,14 +292,12 @@ router.get('/clubs/:id/membership', auth, (req, res) => {
     }
     
     if (membership) {
-      console.log(`User ${userId} is a member of club ${clubId}`);
       res.json({
         success: true,
         isMember: true,
         membership: membership
       });
     } else {
-      console.log(`User ${userId} is NOT a member of club ${clubId}`);
       res.json({
         success: true,
         isMember: false
@@ -331,14 +306,12 @@ router.get('/clubs/:id/membership', auth, (req, res) => {
   });
 });
 
-// Join a club
 router.post('/clubs/:id/join', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
   
   console.log(`Join request for club ID: ${clubId} by user ID: ${userId}`);
   
-  // First check if the club exists
   db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
     if (err) {
       console.error('Error checking club existence:', err);
@@ -355,7 +328,6 @@ router.post('/clubs/:id/join', auth, (req, res) => {
       });
     }
     
-    // Check if the user is already a member
     db.get('SELECT * FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], (err, existingMembership) => {
       if (err) {
         console.error('Error checking existing membership:', err);
@@ -372,7 +344,6 @@ router.post('/clubs/:id/join', auth, (req, res) => {
         });
       }
       
-      // Add user as a member
       const query = 'INSERT INTO club_members (club_id, user_id, join_date, role) VALUES (?, ?, datetime("now"), "member")';
       db.run(query, [clubId, userId], function(err) {
         if (err) {
@@ -394,14 +365,12 @@ router.post('/clubs/:id/join', auth, (req, res) => {
   });
 });
 
-// Leave a club
 router.post('/clubs/:id/leave', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
   
   console.log(`Leave request for club ID: ${clubId} by user ID: ${userId}`);
   
-  // Check if the user is the owner (owners can't leave their own clubs)
   db.get('SELECT * FROM clubs WHERE id = ? AND owner_id = ?', [clubId, userId], (err, ownedClub) => {
     if (err) {
       console.error('Error checking club ownership:', err);
@@ -418,7 +387,6 @@ router.post('/clubs/:id/leave', auth, (req, res) => {
       });
     }
     
-    // Check if the user is actually a member
     db.get('SELECT * FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], (err, membership) => {
       if (err) {
         console.error('Error checking membership:', err);
@@ -435,7 +403,6 @@ router.post('/clubs/:id/leave', auth, (req, res) => {
         });
       }
       
-      // Remove the membership
       db.run('DELETE FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], function(err) {
         if (err) {
           console.error('Error removing club membership:', err);
@@ -455,7 +422,6 @@ router.post('/clubs/:id/leave', auth, (req, res) => {
   });
 });
 
-// Debugging endpoint to get all events (regardless of club)
 router.get('/all-events', auth, (req, res) => {
   console.log('All events endpoint called by user ID:', req.user.id);
   const query = 'SELECT * FROM events';
@@ -472,7 +438,6 @@ router.get('/all-events', auth, (req, res) => {
   });
 });
 
-// Get event by ID
 router.get('/events/:id', auth, (req, res) => {
   const eventId = req.params.id;
   console.log(`Event details request for event ID: ${eventId} by user ID: ${req.user.id}`);
@@ -498,7 +463,6 @@ router.get('/events/:id', auth, (req, res) => {
   });
 });
 
-// Update event by ID
 router.put('/events/:id', auth, (req, res) => {
   const eventId = req.params.id;
   const { title, description } = req.body;
@@ -535,7 +499,6 @@ router.put('/events/:id', auth, (req, res) => {
   });
 });
 
-// Delete event by ID
 router.delete('/events/:id', auth, (req, res) => {
   const eventId = req.params.id;
   console.log(`Delete request for event ID: ${eventId} by user ID: ${req.user.id}`);
@@ -564,7 +527,6 @@ router.delete('/events/:id', auth, (req, res) => {
   });
 });
 
-// Update club by ID
 router.put('/clubs/:id', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
@@ -572,7 +534,6 @@ router.put('/clubs/:id', auth, (req, res) => {
   
   console.log(`Update request for club ID: ${clubId} by user ID: ${userId}`);
   
-  // Validate required fields
   if (!name) {
     return res.status(400).json({
       success: false,
@@ -580,7 +541,6 @@ router.put('/clubs/:id', auth, (req, res) => {
     });
   }
   
-  // Check if user is the owner of the club
   db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
     if (err) {
       console.error('Error checking club ownership:', err);
@@ -597,14 +557,13 @@ router.put('/clubs/:id', auth, (req, res) => {
       });
     }
     
-    if (club.owner_id !== userId) {
+    if (club.owner_id !== userId && !req.user.isSuperUser) {
       return res.status(403).json({
         success: false,
         message: 'Only the club owner can update club details.'
       });
     }
     
-    // Update club details
     const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
     db.run(query, [name, description, category, clubId], function(err) {
       if (err) {
@@ -630,7 +589,6 @@ router.put('/clubs/:id', auth, (req, res) => {
   });
 });
 
-// Alternative route definition that supports all HTTP methods for better compatibility
 router.all('/clubs/:id/update', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
@@ -646,7 +604,6 @@ router.all('/clubs/:id/update', auth, (req, res) => {
   
   console.log(`Alternative update route - Update request for club ID: ${clubId} by user ID: ${userId}`);
   
-  // Validate required fields
   if (!name) {
     return res.status(400).json({
       success: false,
@@ -654,7 +611,6 @@ router.all('/clubs/:id/update', auth, (req, res) => {
     });
   }
   
-  // Check if user is the owner of the club
   db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
     if (err) {
       console.error('Error checking club ownership:', err);
@@ -671,14 +627,13 @@ router.all('/clubs/:id/update', auth, (req, res) => {
       });
     }
     
-    if (club.owner_id !== userId) {
+    if (club.owner_id !== userId && !req.user.isSuperUser) {
       return res.status(403).json({
         success: false,
         message: 'Only the club owner can update club details.'
       });
     }
     
-    // Update club details
     const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
     db.run(query, [name, description, category, clubId], function(err) {
       if (err) {
@@ -704,14 +659,12 @@ router.all('/clubs/:id/update', auth, (req, res) => {
   });
 });
 
-// Delete club
 router.delete('/clubs/:id', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
   
   console.log(`Delete request for club ID: ${clubId} by user ID: ${userId}`);
   
-  // Check if user is the owner of the club
   db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
     if (err) {
       console.error('Error checking club ownership:', err);
@@ -728,14 +681,13 @@ router.delete('/clubs/:id', auth, (req, res) => {
       });
     }
     
-    if (club.owner_id !== userId) {
+    if (club.owner_id !== userId && !req.user.isSuperUser) {
       return res.status(403).json({
         success: false,
         message: 'Only the club owner can delete this club.'
       });
     }
     
-    // Delete club
     db.run('DELETE FROM clubs WHERE id = ?', [clubId], function(err) {
       if (err) {
         console.error('Error deleting club:', err);
@@ -745,18 +697,14 @@ router.delete('/clubs/:id', auth, (req, res) => {
         });
       }
       
-      // Delete all related club members
       db.run('DELETE FROM club_members WHERE club_id = ?', [clubId], function(err) {
         if (err) {
           console.error('Error deleting club members:', err);
-          // Continue with success response even if member deletion fails
         }
         
-        // Delete all related events
         db.run('DELETE FROM events WHERE club_id = ?', [clubId], function(err) {
           if (err) {
             console.error('Error deleting club events:', err);
-            // Continue with success response even if event deletion fails
           }
           
           res.json({
@@ -769,14 +717,12 @@ router.delete('/clubs/:id', auth, (req, res) => {
   });
 });
 
-// Alternative route for club deletion that works with POST
 router.post('/clubs/:id/delete', auth, (req, res) => {
   const clubId = req.params.id;
   const userId = req.user.id;
   
   console.log(`Alternative delete route - Delete request for club ID: ${clubId} by user ID: ${userId}`);
   
-  // Check if user is the owner of the club
   db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
     if (err) {
       console.error('Error checking club ownership:', err);
@@ -793,14 +739,13 @@ router.post('/clubs/:id/delete', auth, (req, res) => {
       });
     }
     
-    if (club.owner_id !== userId) {
+    if (club.owner_id !== userId && !req.user.isSuperUser) {
       return res.status(403).json({
         success: false,
         message: 'Only the club owner can delete this club.'
       });
     }
     
-    // Delete club
     db.run('DELETE FROM clubs WHERE id = ?', [clubId], function(err) {
       if (err) {
         console.error('Error deleting club:', err);
@@ -810,18 +755,14 @@ router.post('/clubs/:id/delete', auth, (req, res) => {
         });
       }
       
-      // Delete all related club members
       db.run('DELETE FROM club_members WHERE club_id = ?', [clubId], function(err) {
         if (err) {
           console.error('Error deleting club members:', err);
-          // Continue with success response even if member deletion fails
         }
         
-        // Delete all related events
         db.run('DELETE FROM events WHERE club_id = ?', [clubId], function(err) {
           if (err) {
             console.error('Error deleting club events:', err);
-            // Continue with success response even if event deletion fails
           }
           
           res.json({
@@ -834,13 +775,11 @@ router.post('/clubs/:id/delete', auth, (req, res) => {
   });
 });
 
-// Get all memberships for the current user
 router.get('/user/memberships', auth, (req, res) => {
   const userId = req.user.id;
   
   console.log(`Getting all memberships for user ID: ${userId}`);
   
-  // SQL query to get all club memberships with club details
   const query = `
     SELECT cm.*, c.name as club_name 
     FROM club_members cm
@@ -857,8 +796,6 @@ router.get('/user/memberships', auth, (req, res) => {
       });
     }
     
-    console.log(`Found ${memberships.length} memberships for user ID: ${userId}`);
-    console.log('Memberships:', memberships);
     
     res.json({
       success: true,

@@ -1,4 +1,3 @@
-// Load environment variables from .env file
 require('dotenv').config();
 
 const express = require('express');
@@ -6,27 +5,21 @@ const cors = require('cors');
 const path = require('path');
 const app = express();
 
-// Import routes with proper paths
 const authRoutes = require('./auth.js');
 const clubRoutes = require('./clubs.js');
 const inviteRoutes = require('./invites.js');
 const auth = require('./middleware');
 const db = require('./db');
 
-// Set up static file serving for the frontend
 app.use('/frontend', express.static(path.join(__dirname, '../frontend')));
 
-// Configure CORS to allow all origins
 app.use((req, res, next) => {
-    // Log all incoming requests for debugging
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin || 'Unknown'}`);
     
-    // Allow requests from localhost:8080 (where our frontend is running)
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         console.log('Handling OPTIONS preflight request');
         return res.sendStatus(200);
@@ -35,42 +28,34 @@ app.use((req, res, next) => {
     next();
 });
 
-// Basic CORS middleware as backup
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Add request logging middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
 
-// Routes
 app.use('/', authRoutes);
 app.use('/', clubRoutes);
 app.use('/', inviteRoutes);
 
-// Add direct API routes for invites
 app.get('/api/invites', auth, (req, res) => {
-  // Forward to the /user/invites route in invites.js
   const userId = req.user.id;
   
   console.log(`API invites request for user ID: ${userId}`);
   
-  // First get the user's email
   db.get('SELECT email FROM users WHERE id = ?', [userId], (err, user) => {
     if (err) {
       console.error('Error fetching user:', err);
@@ -89,7 +74,6 @@ app.get('/api/invites', auth, (req, res) => {
     
     const userEmail = user.email;
     
-    // Get invites for the user's email
     const query = `
       SELECT i.*, c.name as club_name 
       FROM invites i
@@ -114,14 +98,12 @@ app.get('/api/invites', auth, (req, res) => {
   });
 });
 
-// Also add API routes for accepting and rejecting invites
 app.post('/api/invites/:id/accept', auth, (req, res) => {
     const inviteId = req.params.id;
     const userId = req.user.id;
     
     console.log(`API accept invite request - ID: ${inviteId} by user: ${userId}`);
     
-    // Get the invite details
     db.get('SELECT * FROM invites WHERE id = ?', [inviteId], (err, invite) => {
       if (err) {
         console.error('Error fetching invite:', err);
@@ -138,7 +120,6 @@ app.post('/api/invites/:id/accept', auth, (req, res) => {
         });
       }
       
-      // Verify user's email matches invite email
       db.get('SELECT email FROM users WHERE id = ?', [userId], (err, user) => {
         if (err || !user || user.email !== invite.email) {
           return res.status(403).json({ 
@@ -147,10 +128,8 @@ app.post('/api/invites/:id/accept', auth, (req, res) => {
           });
         }
         
-        // Add user to club members
         const memberQuery = 'INSERT INTO club_members (club_id, user_id, role) VALUES (?, ?, ?)';
         
-        // Log the role value before inserting into club_members
         console.log(`API route: Adding user ${userId} to club ${invite.club_id} with role: ${invite.role}`);
         
         db.run(memberQuery, [invite.club_id, userId, invite.role], function(err) {
@@ -162,12 +141,10 @@ app.post('/api/invites/:id/accept', auth, (req, res) => {
             });
           }
           
-          // After successfully adding to club members, remove the invite instead of updating status
           const updateQuery = 'DELETE FROM invites WHERE id = ?';
           db.run(updateQuery, [inviteId], function(err) {
             if (err) {
               console.error('Error removing invite:', err);
-              // Continue anyway since the user is already added to the club
             }
             
             res.json({
@@ -188,7 +165,6 @@ app.post('/api/invites/:id/reject', auth, (req, res) => {
     
     console.log(`API reject invite request - ID: ${inviteId} by user: ${userId}`);
     
-    // Verify user's email matches invite email
     db.get('SELECT i.*, u.email FROM invites i JOIN users u ON u.id = ? WHERE i.id = ?', 
       [userId, inviteId], (err, result) => {
       if (err) {
@@ -206,7 +182,6 @@ app.post('/api/invites/:id/reject', auth, (req, res) => {
         });
       }
       
-      // Delete the rejected invite instead of updating status
       const updateQuery = 'DELETE FROM invites WHERE id = ?';
       db.run(updateQuery, [inviteId], function(err) {
         if (err) {
@@ -225,8 +200,6 @@ app.post('/api/invites/:id/reject', auth, (req, res) => {
     });
 });
 
-// Direct event routes handler for /events endpoints
-// Get event by ID
 app.get('/events/:id', auth, (req, res) => {
     const eventId = req.params.id;
     console.log(`Event details request for event ID: ${eventId}`);
@@ -252,7 +225,6 @@ app.get('/events/:id', auth, (req, res) => {
     });
 });
   
-// Update event by ID
 app.put('/events/:id', auth, (req, res) => {
     const eventId = req.params.id;
     const { title, description } = req.body;
@@ -289,7 +261,6 @@ app.put('/events/:id', auth, (req, res) => {
     });
 });
   
-// Delete event by ID
 app.delete('/events/:id', auth, (req, res) => {
     const eventId = req.params.id;
     console.log(`Delete request for event ID: ${eventId}`);
@@ -318,8 +289,6 @@ app.delete('/events/:id', auth, (req, res) => {
     });
 });
 
-// Define direct clubs routes to ensure proper handling of PUT/DELETE
-// Update club by ID
 app.put('/clubs/:id', auth, (req, res) => {
     const clubId = req.params.id;
     const userId = req.user.id;
@@ -327,7 +296,6 @@ app.put('/clubs/:id', auth, (req, res) => {
     
     console.log(`Direct PUT route - Update request for club ID: ${clubId} by user ID: ${userId}`);
     
-    // Validate required fields
     if (!name) {
       return res.status(400).json({
         success: false,
@@ -335,7 +303,6 @@ app.put('/clubs/:id', auth, (req, res) => {
       });
     }
     
-    // Check if user is the owner of the club
     db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
       if (err) {
         console.error('Error checking club ownership:', err);
@@ -359,7 +326,6 @@ app.put('/clubs/:id', auth, (req, res) => {
         });
       }
       
-      // Update club details
       const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
       db.run(query, [name, description, category, clubId], function(err) {
         if (err) {
@@ -385,14 +351,12 @@ app.put('/clubs/:id', auth, (req, res) => {
     });
 });
 
-// Delete club by ID
 app.delete('/clubs/:id', auth, (req, res) => {
     const clubId = req.params.id;
     const userId = req.user.id;
     
     console.log(`Direct DELETE route - Delete request for club ID: ${clubId} by user ID: ${userId}`);
     
-    // Check if user is the owner of the club
     db.get('SELECT * FROM clubs WHERE id = ?', [clubId], (err, club) => {
       if (err) {
         console.error('Error checking club ownership:', err);
@@ -416,7 +380,6 @@ app.delete('/clubs/:id', auth, (req, res) => {
         });
       }
       
-      // Delete club
       db.run('DELETE FROM clubs WHERE id = ?', [clubId], function(err) {
         if (err) {
           console.error('Error deleting club:', err);
@@ -426,18 +389,14 @@ app.delete('/clubs/:id', auth, (req, res) => {
           });
         }
         
-        // Delete all related club members
         db.run('DELETE FROM club_members WHERE club_id = ?', [clubId], function(err) {
           if (err) {
             console.error('Error deleting club members:', err);
-            // Continue with success response even if member deletion fails
           }
           
-          // Delete all related events
           db.run('DELETE FROM events WHERE club_id = ?', [clubId], function(err) {
             if (err) {
               console.error('Error deleting club events:', err);
-              // Continue with success response even if event deletion fails
             }
             
             res.json({
@@ -450,12 +409,10 @@ app.delete('/clubs/:id', auth, (req, res) => {
     });
 });
 
-// Test route
 app.get('/test', (req, res) => {
     res.send('Server is running!');
 });
 
-// Add CORS test route
 app.get('/cors-test', (req, res) => {
     res.json({ 
         success: true, 
@@ -464,7 +421,6 @@ app.get('/cors-test', (req, res) => {
     });
 });
 
-// Start server with error handling
 const PORT = 3000;
 const server = app.listen(PORT, () => {
     console.log(`ClubConnect backend running on http://localhost:${PORT}`);

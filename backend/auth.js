@@ -23,40 +23,23 @@ router.post('/test-login', (req, res) => {
   });
 });
 
-// Add a variable to track in-progress registrations
-const pendingRegistrations = new Set();
-
 router.post('/register', (req, res) => {
   const { username, email, password } = req.body;
   
   if (!username || !email || !password) {
-    return res.status(400).json({ success: false, message: 'Missing required fields' });
+    return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Check if a registration for this username is already in progress
-  const registrationKey = `${username.toLowerCase()}`;
-  if (pendingRegistrations.has(registrationKey)) {
-    return res.status(409).json({ 
-      success: false, 
-      message: 'A registration for this username is already in progress. Please wait or try a different username.' 
-    });
-  }
-
-  // Mark this registration as in progress
-  pendingRegistrations.add(registrationKey);
-  
   // Check if username already exists
   const userExistsQuery = "SELECT * FROM users WHERE username = ?";
   db.get(userExistsQuery, [username], (err, existingUser) => {
     if (err) {
       console.error('Error checking for existing user:', err);
-      pendingRegistrations.delete(registrationKey);
-      return res.status(500).json({ success: false, message: 'Server error during registration' });
+      return res.status(500).json({ message: 'Server error during registration' });
     }
     
     if (existingUser) {
-      pendingRegistrations.delete(registrationKey);
-      return res.status(409).json({ success: false, message: 'Username already exists' });
+      return res.status(409).json({ message: 'Username already exists' });
     }
     
     // Hash the password
@@ -64,44 +47,20 @@ router.post('/register', (req, res) => {
     bcrypt.hash(password, saltRounds, (hashErr, hashedPassword) => {
       if (hashErr) {
         console.error('Error hashing password:', hashErr);
-        pendingRegistrations.delete(registrationKey);
-        return res.status(500).json({ success: false, message: 'Error hashing password' });
+        return res.status(500).json({ message: 'Error hashing password' });
       }
       
       // Insert new user with hashed password
       const insertQuery = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
       db.run(insertQuery, [username, email, hashedPassword], function(insertErr) {
-        // Registration complete, remove from pending set
-        pendingRegistrations.delete(registrationKey);
-        
         if (insertErr) {
           console.error('Error inserting new user:', insertErr);
-          
-          // Check if it's a uniqueness constraint error
-          if (insertErr.code === 'SQLITE_CONSTRAINT') {
-            return res.status(409).json({ 
-              success: false, 
-              message: 'Username already exists. Please choose another username.' 
-            });
-          }
-          
-          return res.status(500).json({ 
-            success: false,
-            message: 'Server error during registration' 
-          });
+          return res.status(500).json({ message: 'Server error during registration' });
         }
         
-        // Generate a token for immediate login
-        const token = jwt.sign({ 
-          id: this.lastID, 
-          username: username 
-        });
-        
         res.status(201).json({ 
-          success: true,
           message: 'User registered successfully',
-          userId: this.lastID,
-          token: token
+          userId: this.lastID
         });
       });
     });
@@ -112,29 +71,29 @@ router.post('/login', (req, res) => {
   const { username, password } = req.body;
   
   if (!username || !password) {
-    return res.status(400).json({ success: false, message: 'Missing username or password' });
+    return res.status(400).json({ message: 'Missing username or password' });
   }
 
   const query = "SELECT * FROM users WHERE username = ?";
   db.get(query, [username], (err, user) => {
     if (err) {
       console.error('Error during login:', err);
-      return res.status(500).json({ success: false, message: 'Server error during login' });
+      return res.status(500).json({ message: 'Server error during login' });
     }
     
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
     
     // Compare submitted password with stored hash
     bcrypt.compare(password, user.password, (compareErr, match) => {
       if (compareErr) {
         console.error('Error comparing passwords:', compareErr);
-        return res.status(500).json({ success: false, message: 'Error during authentication' });
+        return res.status(500).json({ message: 'Error during authentication' });
       }
       
       if (!match) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid credentials' });
       }
       
       // Generate JWT token
@@ -144,7 +103,6 @@ router.post('/login', (req, res) => {
       });
       
       res.json({ 
-        success: true,
         token, 
         user: { 
           id: user.id, 

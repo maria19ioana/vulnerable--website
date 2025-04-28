@@ -5,42 +5,6 @@ const API_BASE_URL = (() => {
     
 })();
 
-// URL Masking Support
-// Check if a string appears to be a masked URL (base64-like pattern)
-function isMaskedUrl(str) {
-  // Check if it looks like a base64 encoded string (masked URLs)
-  return typeof str === 'string' && 
-         /^[A-Za-z0-9_-]+$/.test(str) && 
-         str.length > 20; // Masked URLs are typically long
-}
-
-// Helper to build URLs with potentially masked parameters
-function buildUrl(baseEndpoint, params = {}) {
-  // Start with the base endpoint
-  let url = baseEndpoint;
-  
-  // If the endpoint already contains an ID that should be masked, handle it differently
-  const idMatch = baseEndpoint.match(/\/([^\/]+)\/([^\/]+)$/);
-  if (idMatch && !isNaN(parseInt(idMatch[2]))) {
-    // This is likely a URL with an ID at the end, e.g., /clubs/123
-    const maskedBaseUrl = baseEndpoint.replace(/\/(\d+)$/, '');
-    url = `${maskedBaseUrl}/${idMatch[2]}`; // We'll let the server unmask this
-  }
-  
-  // Add query parameters
-  if (Object.keys(params).length > 0) {
-    const queryParts = [];
-    for (const [key, value] of Object.entries(params)) {
-      // Don't encode already masked values
-      const encodedValue = isMaskedUrl(value) ? value : encodeURIComponent(value);
-      queryParts.push(`${encodeURIComponent(key)}=${encodedValue}`);
-    }
-    url += (url.includes('?') ? '&' : '?') + queryParts.join('&');
-  }
-  
-  return url;
-}
-
 // ========== TOKEN MANAGEMENT ==========
 function saveToken(token) {
   localStorage.setItem('token', token);
@@ -80,75 +44,71 @@ async function apiPost(endpoint, data, auth = false) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-  // Check if the endpoint contains an ID that might need to be masked
-  const processedEndpoint = buildUrl(endpoint);
-  console.log(`Making API POST request to: ${API_BASE_URL}${processedEndpoint}`);
+    console.log(`Making API POST request to: ${API_BASE_URL}${endpoint}`);
     
-  try {
-    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-      mode: 'cors'
-    });
+    try {
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers,
+            body: JSON.stringify(data),
+            mode: 'cors'
+  });
 
-    console.log(`Response status: ${res.status}`);
+        console.log(`Response status: ${res.status}`);
 
-    const contentType = res.headers.get('content-type');
-    let responseData;
-    
-    if (contentType && contentType.includes('application/json')) {
-      responseData = await res.json();
-    } else {
-      const text = await res.text();
-      console.log(`Response text: ${text}`);
-      responseData = { message: text };
+  const contentType = res.headers.get('content-type');
+        let responseData;
+        
+        if (contentType && contentType.includes('application/json')) {
+            responseData = await res.json();
+        } else {
+            const text = await res.text();
+            console.log(`Response text: ${text}`);
+            responseData = { message: text };
+        }
+
+        if (!res.ok) {
+            throw new Error(responseData.message || `Server error (${res.status})`);
+        }
+
+        return responseData;
+    } catch (error) {
+        console.error('API Error:', error);
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            throw new Error('Cannot connect to server. Please check if the server is running.');
+        }
+        throw error;
     }
-
-    if (!res.ok) {
-      throw new Error(responseData.message || `Server error (${res.status})`);
-    }
-
-    return responseData;
-  } catch (error) {
-    console.error('API Error:', error);
-    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      throw new Error('Cannot connect to server. Please check if the server is running.');
-    }
-    throw error;
-  }
 }
 
-async function apiGet(endpoint, auth = false, params = {}) {
+async function apiGet(endpoint, auth = false) {
   const headers = {};
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-  // Build URL with proper masking of IDs
-  const processedEndpoint = buildUrl(endpoint, params);
-  console.log(`Making API GET request to: ${API_BASE_URL}${processedEndpoint}`);
-  console.log(`Using auth: ${auth ? 'yes' : 'no'}`);
-  if (auth) console.log(`Token: ${getToken() ? getToken().substring(0, 15) + '...' : 'not found'}`);
+    console.log(`Making API GET request to: ${API_BASE_URL}${endpoint}`);
+    console.log(`Using auth: ${auth ? 'yes' : 'no'}`);
+    if (auth) console.log(`Token: ${getToken() ? getToken().substring(0, 15) + '...' : 'not found'}`);
 
-  try {
-    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, { 
-      headers,
-      mode: 'cors'
-    });
-    
-    console.log(`Response status: ${res.status}`);
-    
-    if (!res.ok) {
-      throw new Error('Network response was not ok');
+    try {
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, { 
+            headers,
+            mode: 'cors'
+        });
+        
+        console.log(`Response status: ${res.status}`);
+        
+        if (!res.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+  const contentType = res.headers.get('content-type');
+  return contentType && contentType.includes('application/json')
+    ? res.json()
+    : res.text();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
     }
-
-    const contentType = res.headers.get('content-type');
-    return contentType && contentType.includes('application/json')
-      ? res.json()
-      : res.text();
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
-  }
 }
 
 // Add apiPut helper function
@@ -156,12 +116,10 @@ async function apiPut(endpoint, data, auth = false) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-  // Process endpoint to handle masked IDs
-  const processedEndpoint = buildUrl(endpoint);
-  console.log(`Making API PUT request to: ${API_BASE_URL}${processedEndpoint}`);
+  console.log(`Making API PUT request to: ${API_BASE_URL}${endpoint}`);
   
   try {
-    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',
       headers,
       body: JSON.stringify(data),
@@ -209,12 +167,10 @@ async function apiDelete(endpoint, auth = false) {
   const headers = {};
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-  // Process endpoint to handle masked IDs
-  const processedEndpoint = buildUrl(endpoint);
-  console.log(`Making API DELETE request to: ${API_BASE_URL}${processedEndpoint}`);
+  console.log(`Making API DELETE request to: ${API_BASE_URL}${endpoint}`);
   
   try {
-    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers,
       mode: 'cors'

@@ -13,10 +13,6 @@ const inviteRoutes = require('./invites.js');
 const auth = require('./middleware');
 const db = require('./db');
 
-// Import URL masking utilities
-const { maskUrl, unmaskUrl } = require('./utils/url-masker');
-const { unmaskParam } = require('./middleware/url-mask');
-
 // Set up static file serving for the frontend
 app.use('/frontend', express.static(path.join(__dirname, '../frontend')));
 
@@ -67,32 +63,6 @@ app.use('/', authRoutes);
 app.use('/', clubRoutes);
 app.use('/', inviteRoutes);
 
-// Add URL masking utility endpoint
-app.get('/api/maskUrl', auth, (req, res) => {
-  const url = req.query.url;
-  if (!url) {
-    return res.status(400).json({
-      success: false,
-      message: 'URL parameter is required'
-    });
-  }
-
-  try {
-    const maskedUrl = maskUrl(url);
-    res.json({
-      success: true,
-      originalUrl: url,
-      maskedUrl: maskedUrl
-    });
-  } catch (error) {
-    console.error('Error masking URL:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error masking URL'
-    });
-  }
-});
-
 // Add direct API routes for invites
 app.get('/api/invites', auth, (req, res) => {
   // Forward to the /user/invites route in invites.js
@@ -136,22 +106,16 @@ app.get('/api/invites', auth, (req, res) => {
         });
       }
       
-      // Add masked IDs to invites before sending
-      const maskedInvites = invites.map(invite => ({
-        ...invite,
-        maskedId: maskUrl(invite.id.toString())
-      }));
-      
       res.json({
         success: true,
-        invites: maskedInvites || []
+        invites: invites || []
       });
     });
   });
 });
 
 // Also add API routes for accepting and rejecting invites
-app.post('/api/invites/:id/accept', unmaskParam('id'), auth, (req, res) => {
+app.post('/api/invites/:id/accept', auth, (req, res) => {
     const inviteId = req.params.id;
     const userId = req.user.id;
     
@@ -218,7 +182,7 @@ app.post('/api/invites/:id/accept', unmaskParam('id'), auth, (req, res) => {
     });
 });
 
-app.post('/api/invites/:id/reject', unmaskParam('id'), auth, (req, res) => {
+app.post('/api/invites/:id/reject', auth, (req, res) => {
     const inviteId = req.params.id;
     const userId = req.user.id;
     

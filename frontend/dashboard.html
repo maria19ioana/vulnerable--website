@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
-  <script src="js/url-masker.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -370,7 +369,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="scripts.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', async function() {
+  document.addEventListener('DOMContentLoaded', function() {
     // Setup club search functionality
     const searchInput = document.getElementById('club-search');
     const activityList = document.getElementById('activity-list');
@@ -515,23 +514,6 @@
           refreshMembershipsButton.disabled = false;
         }, 1000);
       });
-    }
-
-    // Add URL masking for all club and event links after the page loads
-    try {
-      // Mask club IDs in club links
-      await urlMasker.maskUrlIds('a.club-link', /club\.html\?id=(\d+)/, (href, maskedId) => {
-        return href.replace(/id=\d+/, `id=${maskedId}`);
-      });
-      
-      // Mask event IDs in event links
-      await urlMasker.maskUrlIds('a.event-link', /event\.html\?id=(\d+)/, (href, maskedId) => {
-        return href.replace(/id=\d+/, `id=${maskedId}`);
-      });
-      
-      console.log('URL masking completed');
-    } catch (error) {
-      console.error('Error during URL masking:', error);
     }
   });
 </script>

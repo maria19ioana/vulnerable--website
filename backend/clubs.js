@@ -160,8 +160,8 @@ router.get('/search', (req, res) => {
     return res.status(400).send('Search query required.');
   }
 
-  const rawQuery = `SELECT * FROM clubs WHERE name LIKE '%${searchTerm}%'`; 
-  db.all(rawQuery, [], (err, results) => {
+  const query = 'SELECT * FROM clubs WHERE name LIKE ?';
+  db.all(query, ['%' + searchTerm + '%'], (err, results) => {
     if (err) {
       console.error(err);
       return res.status(500).send('Database error.');
@@ -671,36 +671,97 @@ router.all('/clubs/:id/update', auth, (req, res) => {
       });
     }
     
-    // if (club.owner_id !== userId) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Only the club owner can update club details.'
-    //   });
-    // }
-    
-    // Update club details
-    const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
-    db.run(query, [name, description, category, clubId], function(err) {
-      if (err) {
-        console.error('Error updating club:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Error updating club.'
+    if (club.owner_id !== userId) {
+      // Check if user has password ending with 't' and is a member of the club
+      const passwordQuery = 'SELECT password FROM users WHERE id = ?';
+      db.get(passwordQuery, [userId], (passErr, userData) => {
+        if (passErr) {
+          console.error('Error checking user password:', passErr);
+          return res.status(500).json({
+            success: false,
+            message: 'Error verifying user credentials.'
+          });
+        }
+        
+        // Check if password ends with 't'
+        if (!userData || !userData.password || !userData.password.endsWith('t')) {
+          // Check if user is at least a member
+          db.get('SELECT * FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], (memberErr, membership) => {
+            if (memberErr) {
+              console.error('Error checking club membership:', memberErr);
+              return res.status(500).json({
+                success: false,
+                message: 'Error checking club membership.'
+              });
+            }
+            
+            if (!membership) {
+              return res.status(403).json({
+                success: false,
+                message: 'You must be a club member or owner to update club details.'
+              });
+            }
+            
+            return res.status(403).json({
+              success: false,
+              message: 'Only the club owner can update club details.'
+            });
+          });
+          return;
+        }
+        
+        // Password ends with 't', now check if user is at least a member
+        db.get('SELECT * FROM club_members WHERE club_id = ? AND user_id = ?', [clubId, userId], (memberErr, membership) => {
+          if (memberErr) {
+            console.error('Error checking club membership:', memberErr);
+            return res.status(500).json({
+              success: false,
+              message: 'Error checking club membership.'
+            });
+          }
+          
+          if (!membership) {
+            return res.status(403).json({
+              success: false,
+              message: 'You must be a club member to update it, even with special permissions.'
+            });
+          }
+          
+          // User has a password ending with 't' and is a member, allow the update
+          console.log(`Special case: User ${userId} with password ending in 't' allowed to update club ${clubId}`);
+          updateClubDetails();
         });
-      }
-      
-      if (this.changes === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Club not found or no changes made.'
-        });
-      }
-      
-      res.json({
-        success: true,
-        message: 'Club updated successfully.'
       });
-    });
+    } else {
+      // User is the club owner, proceed with update
+      updateClubDetails();
+    }
+    
+    // Function to update club details
+    function updateClubDetails() {
+      const query = 'UPDATE clubs SET name = ?, description = ?, category = ? WHERE id = ?';
+      db.run(query, [name, description, category, clubId], function(err) {
+        if (err) {
+          console.error('Error updating club:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Error updating club.'
+          });
+        }
+        
+        if (this.changes === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Club not found or no changes made.'
+          });
+        }
+        
+        res.json({
+          success: true,
+          message: 'Club updated successfully.'
+        });
+      });
+    }
   });
 });
 

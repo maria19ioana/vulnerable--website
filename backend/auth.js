@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('./db'); 
 const jwt = require('./jwt'); 
 const auth = require('./middleware');
+const bcrypt = require('bcrypt');
 
 router.get('/test-auth', (req, res) => {
   res.send('Auth route working!');
@@ -22,62 +23,135 @@ router.post('/test-login', (req, res) => {
   });
 });
 
-router.post('/register', (req, res) => {
-  const { username, password } = req.body;
+// Add a variable to track in-progress registrations
+const pendingRegistrations = new Set();
 
-  if (!username || !password) {
-    return res.status(400).send('Username and password required.');
+router.post('/register', (req, res) => {
+  const { username, email, password } = req.body;
+  
+  if (!username || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
 
-  const query = 'INSERT INTO users (username, password, role) VALUES (?, ?, ?)';
-  db.run(query, [username, password, 'user'], function(err) {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Error creating user.');
-    }
+  // Check if a registration for this username is already in progress
+  const registrationKey = `${username.toLowerCase()}`;
+  if (pendingRegistrations.has(registrationKey)) {
+    return res.status(409).json({ 
+      success: false, 
+      message: 'A registration for this username is already in progress. Please wait or try a different username.' 
+    });
+  }
 
-    res.send('User registered successfully!');
+  // Mark this registration as in progress
+  pendingRegistrations.add(registrationKey);
+  
+  // Check if username already exists
+  const userExistsQuery = "SELECT * FROM users WHERE username = ?";
+  db.get(userExistsQuery, [username], (err, existingUser) => {
+    if (err) {
+      console.error('Error checking for existing user:', err);
+      pendingRegistrations.delete(registrationKey);
+      return res.status(500).json({ success: false, message: 'Server error during registration' });
+    }
+    
+    if (existingUser) {
+      pendingRegistrations.delete(registrationKey);
+      return res.status(409).json({ success: false, message: 'Username already exists' });
+    }
+    
+    // Hash the password
+    const saltRounds = 10;
+    bcrypt.hash(password, saltRounds, (hashErr, hashedPassword) => {
+      if (hashErr) {
+        console.error('Error hashing password:', hashErr);
+        pendingRegistrations.delete(registrationKey);
+        return res.status(500).json({ success: false, message: 'Error hashing password' });
+      }
+      
+      // Insert new user with hashed password
+      const insertQuery = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+      db.run(insertQuery, [username, email, hashedPassword], function(insertErr) {
+        // Registration complete, remove from pending set
+        pendingRegistrations.delete(registrationKey);
+        
+        if (insertErr) {
+          console.error('Error inserting new user:', insertErr);
+          
+          // Check if it's a uniqueness constraint error
+          if (insertErr.code === 'SQLITE_CONSTRAINT') {
+            return res.status(409).json({ 
+              success: false, 
+              message: 'Username already exists. Please choose another username.' 
+            });
+          }
+          
+          return res.status(500).json({ 
+            success: false,
+            message: 'Server error during registration' 
+          });
+        }
+        
+        // Generate a token for immediate login
+        const token = jwt.sign({ 
+          id: this.lastID, 
+          username: username 
+        });
+        
+        res.status(201).json({ 
+          success: true,
+          message: 'User registered successfully',
+          userId: this.lastID,
+          token: token
+        });
+      });
+    });
   });
 });
 
 router.post('/login', (req, res) => {
-  console.log('Login request received:', req.body);
-  
   const { username, password } = req.body;
-
+  
   if (!username || !password) {
-    console.log('Login failed: Missing username or password');
-    return res.status(400).json({ 
-      success: false,
-      message: 'Username and password required.' 
-    });
+    return res.status(400).json({ success: false, message: 'Missing username or password' });
   }
 
-  const query = 'SELECT * FROM users WHERE username = ? AND password = ?';
-  db.get(query, [username, password], (err, user) => {
+  const query = "SELECT * FROM users WHERE username = ?";
+  db.get(query, [username], (err, user) => {
     if (err) {
-      console.error('Database error during login:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Error logging in. Database error.'
-      });
+      console.error('Error during login:', err);
+      return res.status(500).json({ success: false, message: 'Server error during login' });
     }
-
+    
     if (!user) {
-      console.log('Login failed: Invalid credentials for user', username);
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials.'
-      });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
-
-    console.log('Login successful for user:', username);
-    const token = jwt.sign(user);
-    res.json({ 
-      success: true,
-      token,
-      username: user.username,
-      role: user.role
+    
+    // Compare submitted password with stored hash
+    bcrypt.compare(password, user.password, (compareErr, match) => {
+      if (compareErr) {
+        console.error('Error comparing passwords:', compareErr);
+        return res.status(500).json({ success: false, message: 'Error during authentication' });
+      }
+      
+      if (!match) {
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      }
+      
+      // Generate JWT token
+      const token = jwt.sign({ 
+        id: user.id, 
+        username: user.username 
+      });
+      
+      res.json({ 
+        success: true,
+        token, 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email 
+        } 
+      });
     });
   });
 });
@@ -131,87 +205,106 @@ router.post('/update-email', auth, (req, res) => {
     });
   }
   
-  // Verify the user's password first
-  const verifyQuery = 'SELECT * FROM users WHERE id = ? AND password = ?';
-  db.get(verifyQuery, [userId, password], (err, user) => {
+  // Get the user with their hashed password
+  const query = 'SELECT * FROM users WHERE id = ?';
+  db.get(query, [userId], (err, user) => {
     if (err) {
-      console.error('Database error during password verification:', err);
+      console.error('Error fetching user:', err);
       return res.status(500).json({
         success: false,
-        message: 'Error verifying password.'
+        message: 'Error fetching user data.'
       });
     }
     
     if (!user) {
-      return res.status(401).json({
+      return res.status(404).json({
         success: false,
-        message: 'Invalid password.'
+        message: 'User not found.'
       });
     }
     
-    // Password verified, update the email
-    const updateQuery = 'UPDATE users SET email = ? WHERE id = ?';
-    db.run(updateQuery, [email, userId], function(err) {
-      if (err) {
-        console.error('Error updating email:', err);
+    // Verify password using bcrypt compare
+    bcrypt.compare(password, user.password, (compareErr, match) => {
+      if (compareErr) {
+        console.error('Error comparing passwords:', compareErr);
         return res.status(500).json({
           success: false,
-          message: 'Error updating email.'
+          message: 'Error verifying password.'
         });
       }
       
-      return res.json({
-        success: true,
-        message: 'Email updated successfully.'
+      if (!match) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid password.'
+        });
+      }
+      
+      // Password verified, update the email
+      const updateQuery = 'UPDATE users SET email = ? WHERE id = ?';
+      db.run(updateQuery, [email, userId], function(updateErr) {
+        if (updateErr) {
+          console.error('Error updating email:', updateErr);
+          return res.status(500).json({
+            success: false,
+            message: 'Error updating email.'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Email updated successfully.'
+        });
       });
     });
   });
 });
 
-// Update user's password
+// Update user's password - NEW PASSWORD FIELD VULNERABLE TO SQL INJECTION FOR EDUCATIONAL PURPOSES
 router.post('/update-password', auth, (req, res) => {
-  const userId = req.user.id;
   const { currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
   
   if (!currentPassword || !newPassword) {
-    return res.status(400).json({
-      success: false,
-      message: 'Current password and new password are required.'
-    });
+    return res.status(400).json({ message: 'Missing current or new password' });
   }
   
-  // Verify the current password
-  const verifyQuery = 'SELECT * FROM users WHERE id = ? AND password = ?';
-  db.get(verifyQuery, [userId, currentPassword], (err, user) => {
+  // First get the user with a secure query
+  const getUserQuery = "SELECT * FROM users WHERE id = ?";
+  db.get(getUserQuery, [userId], (err, user) => {
     if (err) {
-      console.error('Database error during password verification:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Error verifying current password.'
-      });
+      console.error('Error fetching user:', err);
+      return res.status(500).json({ message: 'Server error during password update' });
     }
     
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Current password is incorrect.'
-      });
+      return res.status(404).json({ message: 'User not found' });
     }
     
-    // Current password verified, update to new password
-    const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
-    db.run(updateQuery, [newPassword, userId], function(err) {
-      if (err) {
-        console.error('Error updating password:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Error updating password.'
-        });
+    // Verify current password
+    bcrypt.compare(currentPassword, user.password, (compareErr, match) => {
+      if (compareErr) {
+        console.error('Error comparing passwords:', compareErr);
+        return res.status(500).json({ message: 'Error verifying current password' });
       }
       
-      return res.json({
-        success: true,
-        message: 'Password updated successfully.'
+      if (!match) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+      
+      // VULNERABLE: Direct string concatenation of new password in SQL query
+      // DO NOT DO THIS IN PRODUCTION CODE - For educational purposes only
+      const updateQuery = "UPDATE users SET password = '" + newPassword + "' WHERE id = " + userId;
+      
+      console.log('[DEBUG] Executing update:', updateQuery); // Log for demonstration
+      
+      db.exec(updateQuery, function(updateErr) {
+        if (updateErr) {
+          console.error('Error updating password:', updateErr);
+          return res.status(500).json({ message: 'Server error during password update' });
+        }
+        
+        res.json({ message: 'Password updated successfully' });
       });
     });
   });

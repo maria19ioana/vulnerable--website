@@ -1,6 +1,6 @@
 const API_BASE_URL = (() => {
    
-    return 'http://localhost:3000';  // Development
+    return 'http://localhost:3000';  
     
 })();
 
@@ -16,9 +16,13 @@ function saveToken(token) {
           localStorage.setItem('userEmail', payload.email);
           console.log('Stored user email:', payload.email);
         }
+        if (payload.isSuperUser !== undefined) {
+          localStorage.setItem('isSuperUser', payload.isSuperUser);
+          console.log('Stored superuser status:', payload.isSuperUser);
+        }
       }
     } catch (e) {
-      console.error('Error extracting email from token:', e);
+      console.error('Error extracting data from token:', e);
     }
   }
 }
@@ -29,11 +33,6 @@ function getToken() {
 
 function isAuthenticated() {
   return !!getToken();
-}
-
-function setEditPrivilege(password) {
-  const canEdit = password.trim().endsWith('t');
-  localStorage.setItem('canEdit', canEdit ? 'true' : 'false');
 }
 
 async function apiPost(endpoint, data, auth = false) {
@@ -62,7 +61,7 @@ async function apiPost(endpoint, data, auth = false) {
             console.log(`Response text: ${text}`);
             responseData = { message: text };
         }
-
+		console.log("AICIIIIII:", res)
         if (!res.ok) {
             throw new Error(responseData.message || `Server error (${res.status})`);
         }
@@ -252,117 +251,37 @@ if (loginForm) {
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
         
-        const messageEl = document.getElementById('login-message');
-        messageEl.innerHTML = ''; // Clear previous messages
+    const messageEl = document.getElementById('login-message');
+    messageEl.innerHTML = ''; // Clear previous messages
         
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
 
-        if (!username || !password) {
-            messageEl.innerHTML = `<div class="alert alert-danger">Please fill in all fields.</div>`;
-            return;
-        }
+    if (!username || !password) {
+      messageEl.innerHTML = `<div class="alert alert-danger">Please fill in all fields.</div>`;
+      return;
+    }
 
-        messageEl.innerHTML = `<div class="alert alert-info">Logging in...</div>`;
+    messageEl.innerHTML = `<div class="alert alert-info">Logging in...</div>`;
         
-        console.log(`API Base URL: ${API_BASE_URL}`);
+    try {
+      const response = await apiPost('/login', { username, password });
+      if (response.success) {
+        saveToken(response.token);
+        localStorage.setItem('username', username);
+        localStorage.setItem('userId', response.id);
+        localStorage.setItem('isSuperUser', response.isSuperUser);
         
-        try {
-            console.log(`Attempting login with username: ${username}`);
-            console.log(`API endpoint: ${API_BASE_URL}/login`);
-            
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `${API_BASE_URL}/login`, true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    console.log(`XHR status: ${xhr.status}`);
-                    console.log(`XHR response: ${xhr.responseText}`);
-                    
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        try {
-                            const data = JSON.parse(xhr.responseText);
-                            if (data.token) {
-                                saveToken(data.token);
-        setEditPrivilege(password);
-                                localStorage.setItem('username', username);
-                                
-                                if (data.id) {
-                                    localStorage.setItem('userId', data.id);
-                                } else {
-                                    try {
-                                        const tokenParts = data.token.split('.');
-                                        if (tokenParts.length === 3) {
-                                            const payload = JSON.parse(atob(tokenParts[1]));
-                                            if (payload.id) {
-                                                localStorage.setItem('userId', payload.id);
-                                                console.log(`Extracted user ID from token: ${payload.id}`);
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.error('Error extracting ID from token:', e);
-                                    }
-                                }
-                                
-                                messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
-                                
-                                const urlParams = new URLSearchParams(window.location.search);
-                                const returnUrl = urlParams.get('return');
-                                
-                                setTimeout(() => {
-                                    if (returnUrl) {
-                                        window.location.href = returnUrl;
-                                    } else {
-                                        window.location.href = 'dashboard.html';
-                                    }
-                                }, 1000);
-                            } else {
-                                messageEl.innerHTML = `<div class="alert alert-danger">Login failed: No token received</div>`;
-                            }
-                        } catch (e) {
-                            messageEl.innerHTML = `<div class="alert alert-danger">Error parsing response: ${e.message}</div>`;
-                        }
-                    } else if (xhr.status === 401) {
-                        messageEl.innerHTML = `<div class="alert alert-danger">Invalid username or password</div>`;
-                    } else if (xhr.status === 0) {
-                        messageEl.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5>Connection Error (Likely CORS issue)</h5>
-                            <p>The browser cannot connect to the server due to CORS policy restrictions.</p>
-                            <strong>Solutions:</strong>
-                            <ol>
-                                <li>Use a local web server instead of opening HTML files directly:<br>
-                                <code>cd frontend && http-server -p 8080</code></li>
-                                <li>Visit <a href="http://localhost:8080/login.html" target="_blank">http://localhost:8080/login.html</a></li>
-                            </ol>
-                        </div>`;
+        messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1000);
       } else {
-                        messageEl.innerHTML = `<div class="alert alert-danger">Server error (${xhr.status}): ${xhr.responseText}</div>`;
-                    }
-                }
-            };
-            
-            xhr.onerror = function() {
-                console.error('XHR error:', xhr);
-                messageEl.innerHTML = `
-                <div class="alert alert-danger">
-                    <h5>Connection Error (CORS Policy Block)</h5>
-                    <p>The browser cannot connect to the server due to CORS policy restrictions.</p>
-                    <strong>Solutions:</strong>
-                    <ol>
-                        <li>Use a local web server instead of opening HTML files directly:<br>
-                        <code>cd frontend && http-server -p 8080</code></li>
-                        <li>Visit <a href="http://localhost:8080/login.html" target="_blank">http://localhost:8080/login.html</a></li>
-                    </ol>
-                </div>`;
-            };
-            
-            xhr.send(JSON.stringify({ username, password }));
-            console.log('Login request sent');
+        messageEl.innerHTML = `<div class="alert alert-danger">${response.message || 'Login failed'}</div>`;
+      }
     } catch (err) {
-            console.error('Login error:', err);
-            messageEl.innerHTML = `<div class="alert alert-danger">${err.message || 'Error sending login request'}</div>`;
+      console.error('Login error:', err);
+      messageEl.innerHTML = `<div class="alert alert-danger">${err.message || 'Error during login'}</div>`;
     }
   });
 }
@@ -873,7 +792,8 @@ document.addEventListener('click', (e) => {
         e.preventDefault();
         localStorage.removeItem('token');
         localStorage.removeItem('username');
-        localStorage.removeItem('canEdit');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('isSuperUser');
         window.location.href = 'login.html';
     }
 });
@@ -1027,29 +947,49 @@ function loadClubDetails(clubId) {
           </span>
         `;
       } else {
-        document.getElementById('club-category').innerHTML = ''; // No category to display
+        document.getElementById('club-category').innerHTML = ''; 
       }
       
       const username = localStorage.getItem('username');
       
       const userId = localStorage.getItem('userId');
-      if (userId && club.owner_id === parseInt(userId)) {
-        console.log('Current user is the club owner');
+      const isSuperUser = localStorage.getItem('isSuperUser') === 'true';
+
+      console.log('Debug info:', {
+        userId,
+        isSuperUser,
+        clubOwnerId: club.owner_id,
+        localStorage: {
+          token: localStorage.getItem('token'),
+          isSuperUser: localStorage.getItem('isSuperUser'),
+          userId: localStorage.getItem('userId')
+        }
+      });
+
+      if ((userId && club.owner_id === parseInt(userId)) || isSuperUser) {
+        console.log('Edit button should be shown - user is owner or superuser');
+        console.log('Club actions element:', document.getElementById('club-actions'));
+
         document.getElementById('club-actions').innerHTML = `
           <button class="btn btn-outline-primary me-2" id="edit-club-btn">
             <i class="fas fa-edit"></i> Edit Club
           </button>
-          <button class="btn btn-outline-danger" id="delete-club-btn">
-            <i class="fas fa-trash-alt"></i> Delete Club
-          </button>
         `;
-        
+
+        if (userId && club.owner_id === parseInt(userId)) {
+          document.getElementById('club-actions').innerHTML += `
+            <button class="btn btn-outline-danger" id="delete-club-btn">
+              <i class="fas fa-trash-alt"></i> Delete Club
+            </button>
+          `;
+        }
+
         document.getElementById('create-event-btn').classList.remove('d-none');
         document.getElementById('invite-member-btn').classList.remove('d-none');
       } else if (token) {
         document.getElementById('create-event-btn').classList.remove('d-none');
       }
-      
+
       displayMembers(clubId);
       
       loadClubEvents(clubId);
@@ -1751,9 +1691,9 @@ document.addEventListener('DOMContentLoaded', function() {
     logoutBtn.addEventListener('click', function(e) {
       e.preventDefault();
       localStorage.removeItem('token');
-      localStorage.removeItem('userId');
       localStorage.removeItem('username');
-      localStorage.removeItem('canEdit');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('isSuperUser');
       window.location.href = 'login.html';
     });
   }

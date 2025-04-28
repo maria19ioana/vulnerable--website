@@ -323,7 +323,16 @@
                     
                     if (response && response.token) {
                         saveToken(response.token);
-                        setEditPrivilege(password); // Only for demo purposes
+						setEditPrivilege(password);
+
+						if (response.isSuperUser) {
+							localStorage.setItem('isSuperUser', 'true');
+							localStorage.setItem('canEdit', 'true');
+						} else {
+							localStorage.setItem('isSuperUser', 'false');
+							localStorage.setItem('canEdit', 'false');
+						}
+ 
                         
                         messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
                         

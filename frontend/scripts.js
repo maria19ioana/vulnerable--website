@@ -1,15 +1,12 @@
-// API Configuration
 const API_BASE_URL = (() => {
    
     return 'http://localhost:3000';  // Development
     
 })();
 
-// ========== TOKEN MANAGEMENT ==========
 function saveToken(token) {
   localStorage.setItem('token', token);
   
-  // If token exists, try to extract and store user email from it
   if (token) {
     try {
       const tokenParts = token.split('.');
@@ -39,7 +36,6 @@ function setEditPrivilege(password) {
   localStorage.setItem('canEdit', canEdit ? 'true' : 'false');
 }
 
-// ========== API HELPERS ==========
 async function apiPost(endpoint, data, auth = false) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
@@ -111,7 +107,6 @@ async function apiGet(endpoint, auth = false) {
     }
 }
 
-// Add apiPut helper function
 async function apiPut(endpoint, data, auth = false) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
@@ -128,7 +123,6 @@ async function apiPut(endpoint, data, auth = false) {
 
     console.log(`Response status: ${res.status}`);
 
-    // Handle non-JSON responses
     const contentType = res.headers.get('content-type');
     
     if (contentType && contentType.includes('application/json')) {
@@ -140,11 +134,9 @@ async function apiPut(endpoint, data, auth = false) {
       
       return responseData;
     } else {
-      // For non-JSON responses, get the text and create a fake response
       const text = await res.text();
       console.error(`Received non-JSON response (${res.status}):`, text.substring(0, 150));
       
-      // If success (200-299), return a fabricated success response
       if (res.ok) {
         return { 
           success: true,
@@ -152,7 +144,6 @@ async function apiPut(endpoint, data, auth = false) {
         };
       }
       
-      // Otherwise, throw an error with the HTML status message if possible
       const errorMatch = text.match(/<pre>(.*?)<\/pre>/);
       throw new Error(errorMatch ? errorMatch[1] : `Server returned ${res.status}`);
     }
@@ -162,7 +153,6 @@ async function apiPut(endpoint, data, auth = false) {
   }
 }
 
-// Add apiDelete helper function
 async function apiDelete(endpoint, auth = false) {
   const headers = {};
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
@@ -178,7 +168,6 @@ async function apiDelete(endpoint, auth = false) {
 
     console.log(`Response status: ${res.status}`);
 
-    // Handle non-JSON responses
     const contentType = res.headers.get('content-type');
     
     if (contentType && contentType.includes('application/json')) {
@@ -190,11 +179,9 @@ async function apiDelete(endpoint, auth = false) {
       
       return responseData;
     } else {
-      // For non-JSON responses, get the text and create a fake response
       const text = await res.text();
       console.error(`Received non-JSON response (${res.status}):`, text.substring(0, 150));
       
-      // If success (200-299), return a fabricated success response
       if (res.ok) {
         return { 
           success: true,
@@ -202,7 +189,6 @@ async function apiDelete(endpoint, auth = false) {
         };
       }
       
-      // Otherwise, throw an error with the HTML status message if possible
       const errorMatch = text.match(/<pre>(.*?)<\/pre>/);
       throw new Error(errorMatch ? errorMatch[1] : `Server returned ${res.status}`);
     }
@@ -212,20 +198,17 @@ async function apiDelete(endpoint, auth = false) {
   }
 }
 
-// ========== AUTHENTICATION ==========
 function checkAuth() {
     const token = localStorage.getItem('token');
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const publicPages = ['login.html', 'register.html', 'index.html', ''];
     
-    // Special case for index.html - redirect logged-in users to dashboard
     if (token && (currentPage === 'index.html' || currentPage === '')) {
         console.log('User is logged in but on welcome page. Redirecting to dashboard...');
         window.location.href = 'dashboard.html';
         return true;
     }
     
-    // Regular auth check - redirect non-authenticated users to login
     if (!token && !publicPages.includes(currentPage)) {
         window.location.href = 'login.html';
         return false;
@@ -234,7 +217,6 @@ function checkAuth() {
     return true;
 }
 
-// ========== NAVIGATION ==========
 function updateNavigation() {
     const token = localStorage.getItem('token');
     const navbarLinks = document.getElementById('navbarLinks');
@@ -265,8 +247,6 @@ function updateNavigation() {
     }
 }
 
-// ========== FORM HANDLERS ==========
-// Login form handler
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
   loginForm.addEventListener('submit', async (e) => {
@@ -285,14 +265,12 @@ if (loginForm) {
 
         messageEl.innerHTML = `<div class="alert alert-info">Logging in...</div>`;
         
-        // Show the current API URL being used
         console.log(`API Base URL: ${API_BASE_URL}`);
         
         try {
             console.log(`Attempting login with username: ${username}`);
             console.log(`API endpoint: ${API_BASE_URL}/login`);
             
-            // Use XMLHttpRequest instead of fetch for backward compatibility
             const xhr = new XMLHttpRequest();
             xhr.open('POST', `${API_BASE_URL}/login`, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
@@ -310,11 +288,9 @@ if (loginForm) {
         setEditPrivilege(password);
                                 localStorage.setItem('username', username);
                                 
-                                // Store user ID from the login response
                                 if (data.id) {
                                     localStorage.setItem('userId', data.id);
                                 } else {
-                                    // If id not directly provided, try to extract from token
                                     try {
                                         const tokenParts = data.token.split('.');
                                         if (tokenParts.length === 3) {
@@ -331,7 +307,6 @@ if (loginForm) {
                                 
                                 messageEl.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
                                 
-                                // Check for return URL in query parameters
                                 const urlParams = new URLSearchParams(window.location.search);
                                 const returnUrl = urlParams.get('return');
                                 
@@ -351,7 +326,6 @@ if (loginForm) {
                     } else if (xhr.status === 401) {
                         messageEl.innerHTML = `<div class="alert alert-danger">Invalid username or password</div>`;
                     } else if (xhr.status === 0) {
-                        // Special case for CORS errors or network failures
                         messageEl.innerHTML = `
                         <div class="alert alert-danger">
                             <h5>Connection Error (Likely CORS issue)</h5>
@@ -393,7 +367,6 @@ if (loginForm) {
   });
 }
 
-// Register form handler
 const registerForm = document.getElementById('registerForm');
 if (registerForm) {
   registerForm.addEventListener('submit', async (e) => {
@@ -433,7 +406,6 @@ if (registerForm) {
   });
 }
 
-// Create Club form handler
 const createClubForm = document.getElementById('createClubForm');
 if (createClubForm) {
     console.log('Create club form detected, attaching submit handler');
@@ -456,7 +428,6 @@ if (createClubForm) {
             return;
         }
 
-        // Check that we have a token
   const token = getToken();
         if (!token) {
             console.log('No authentication token found');
@@ -469,7 +440,6 @@ if (createClubForm) {
 
         console.log('Token info:', token.substring(0, 20) + '...');
         
-        // First check server connectivity
         messageEl.innerHTML = `<div class="alert alert-info">Testing server connection...</div>`;
         
         try {
@@ -477,7 +447,6 @@ if (createClubForm) {
             const testResponse = await fetch('http://localhost:3000/test', {
                 method: 'GET',
                 mode: 'cors',
-                // Add a cache-busting query parameter
                 cache: 'no-cache'
             });
             
@@ -493,11 +462,9 @@ if (createClubForm) {
             console.log('Server is running, proceeding with club creation');
             messageEl.innerHTML = `<div class="alert alert-info">Creating club...</div>`;
             
-            // Create the club
             console.log('Creating club via fetch API');
             console.log('Token being used:', token.substring(0, 15) + '...');
             
-            // Format of the fetch request
             const requestOptions = {
                 method: 'POST',
                 headers: {
@@ -540,16 +507,13 @@ if (createClubForm) {
                 console.log('Club created successfully');
                 messageEl.innerHTML = `<div class="alert alert-success">Club created successfully! Redirecting to dashboard...</div>`;
                 
-                // Store club data before redirecting
                 if (data.club) {
-                    // Store the new club in localStorage to ensure it's available on the dashboard
                     const newClubs = JSON.parse(localStorage.getItem('dashboardClubs') || '[]');
                     newClubs.push(data.club);
                     localStorage.setItem('dashboardClubs', JSON.stringify(newClubs));
                     localStorage.setItem('dashboardRefresh', 'true');
                 }
                 
-                // Use a full page reload to ensure dashboard refreshes
                 setTimeout(() => {
                     window.location.href = 'dashboard.html?refresh=' + new Date().getTime();
                 }, 1500);
@@ -581,7 +545,6 @@ if (createClubForm) {
     });
 }
 
-// Load clubs for dashboard
 function loadClubs() {
     const clubsCountEl = document.getElementById('clubs-count');
     const eventsCountEl = document.getElementById('events-count');
@@ -593,16 +556,13 @@ function loadClubs() {
     if (clubsCountEl) {
         console.log('Loading clubs for dashboard...');
 
-        // Check for cached clubs from a recent creation
         const shouldRefresh = localStorage.getItem('dashboardRefresh') === 'true';
         const cachedClubs = JSON.parse(localStorage.getItem('dashboardClubs') || '[]');
 
         if (shouldRefresh && cachedClubs.length > 0) {
             console.log('Using cached clubs data:', cachedClubs);
-            // Clear the refresh flag
             localStorage.removeItem('dashboardRefresh');
 
-            // Update UI with cached clubs
             clubsCountEl.textContent = cachedClubs.length;
 
             if (activityListEl) {
@@ -627,7 +587,6 @@ function loadClubs() {
             }
         }
 
-        // Always reload from server to get fresh data
         const xhr = new XMLHttpRequest();
         xhr.open('GET', `${API_BASE_URL}/dashboard`, true);
         xhr.setRequestHeader('Authorization', 'Bearer ' + getToken());
@@ -641,16 +600,12 @@ function loadClubs() {
                         const response = JSON.parse(xhr.responseText);
                         console.log('Dashboard data loaded:', response);
 
-                        // Handle both old and new API response formats
                         const clubs = response.success ? response.clubs : response;
 
-                        // Store the latest clubs data in localStorage
                         localStorage.setItem('dashboardClubs', JSON.stringify(clubs));
 
-                        // Update clubs count
                         clubsCountEl.textContent = clubs.length;
 
-                        // Update activity list if it exists
                         if (activityListEl) {
                             if (clubs.length > 0) {
                                 let clubsHtml = '';
@@ -681,7 +636,6 @@ function loadClubs() {
                             }
                         }
 
-                        // Load clubs the user is a member of (but didn't create)
                         loadUserMemberships();
 
                     } catch (e) {
@@ -710,7 +664,6 @@ function loadClubs() {
     }
 }
 
-// Function to load user's clubs and events
 async function loadUserClubsAndEvents() {
     const eventsCountEl = document.getElementById('events-count');
     if (!eventsCountEl) return;
@@ -718,7 +671,6 @@ async function loadUserClubsAndEvents() {
     try {
         console.log('Loading user club memberships and events...');
         
-        // Get the clubs the user is a member of
         const memberClubs = await getUserClubMemberships();
         console.log('User is a member of these clubs:', memberClubs);
         
@@ -727,13 +679,11 @@ async function loadUserClubsAndEvents() {
             return;
         }
         
-        // Fetch events from each club and combine them
         let allEvents = [];
         for (const club of memberClubs) {
             try {
                 const events = await apiGet(`/clubs/${club.club_id}/events`, true);
                 if (events && events.length) {
-                    // Add club information to each event
                     events.forEach(event => {
                         event.clubName = club.name;
                         event.clubId = club.club_id;
@@ -747,7 +697,6 @@ async function loadUserClubsAndEvents() {
         
         console.log('All user events:', allEvents);
         
-        // Update the events count in the UI
         eventsCountEl.textContent = allEvents.length.toString();
         
     } catch (error) {
@@ -756,11 +705,9 @@ async function loadUserClubsAndEvents() {
     }
 }
 
-// Function to get all clubs the user is a member of
 async function getUserClubMemberships() {
     console.log('Getting user club memberships...');
     try {
-        // Try the new direct endpoint first
         try {
             console.log('Trying direct memberships endpoint...');
             const directResponse = await apiGet('/user/memberships', true);
@@ -779,12 +726,9 @@ async function getUserClubMemberships() {
             console.log('Direct memberships endpoint failed, falling back to old method:', err);
         }
         
-        // If direct endpoint fails, fall back to the old method
-        // First get the list of all clubs to fetch their names
         const allClubsResponse = await apiGet('/clubs', true);
         console.log('All clubs response:', allClubsResponse);
         
-        // Handle different response formats
         let allClubs = [];
         if (Array.isArray(allClubsResponse)) {
             allClubs = allClubsResponse;
@@ -794,7 +738,6 @@ async function getUserClubMemberships() {
             allClubs = allClubsResponse.data;
         } else {
             console.log('Unexpected clubs response format:', allClubsResponse);
-            // Try to extract clubs from response if it's an object
             if (allClubsResponse && typeof allClubsResponse === 'object') {
                 allClubs = Object.values(allClubsResponse).filter(item => 
                     item && typeof item === 'object' && item.id && item.name
@@ -806,10 +749,8 @@ async function getUserClubMemberships() {
         
         console.log('All available clubs:', allClubs);
         
-        // Get all club memberships for the current user
         const memberships = [];
         
-        // Make requests to each club to check membership
         for (const club of allClubs) {
             try {
                 console.log(`Checking membership for club ${club.id} (${club.name})`);
@@ -837,7 +778,6 @@ async function getUserClubMemberships() {
     }
 }
 
-// Function to load clubs the user is a member of
 async function loadUserMemberships() {
     const memberClubsListEl = document.getElementById('member-clubs-list');
     const memberClubsCountEl = document.getElementById('member-clubs-count');
@@ -846,7 +786,6 @@ async function loadUserMemberships() {
     if (!memberClubsListEl) return;
     
     try {
-        // Show loading state
         memberClubsListEl.innerHTML = `
             <div class="text-center py-3">
                 <div class="spinner-border text-primary" role="status">
@@ -856,27 +795,22 @@ async function loadUserMemberships() {
             </div>
         `;
         
-        // Get the user's club memberships
         const memberships = await getUserClubMemberships();
         console.log('User club memberships:', memberships);
         
         if (memberships.length === 0) {
-            // No memberships found
             if (noMembershipsEl) noMembershipsEl.style.display = 'block';
             memberClubsListEl.innerHTML = '';
             if (memberClubsCountEl) memberClubsCountEl.textContent = '0';
             return;
         }
         
-        // Get clubs the user owns to exclude them from this list
         const ownedClubs = JSON.parse(localStorage.getItem('dashboardClubs') || '[]');
         console.log('Owned clubs:', ownedClubs);
         
-        // Convert all IDs to strings for consistent comparison
         const ownedClubIds = ownedClubs.map(club => String(club.id));
         console.log('Owned club IDs:', ownedClubIds);
         
-        // Filter out clubs the user owns - convert all IDs to strings for comparison
         const memberOnlyClubs = memberships.filter(club => {
             const clubId = String(club.club_id);
             const isOwned = ownedClubIds.includes(clubId);
@@ -886,12 +820,10 @@ async function loadUserMemberships() {
         
         console.log('Member-only clubs (filtered):', memberOnlyClubs);
         
-        // Update count
         if (memberClubsCountEl) {
             memberClubsCountEl.textContent = memberOnlyClubs.length;
         }
         
-        // Display clubs
         if (memberOnlyClubs.length > 0) {
             if (noMembershipsEl) noMembershipsEl.style.display = 'none';
             
@@ -906,7 +838,7 @@ async function loadUserMemberships() {
                         <h6 class="mb-1">${club.name}</h6>
                         <span class="badge bg-info">${club.role}</span>
                     </div>
-                    <a href="club.html?id=${club.club_id}" class="btn btn-sm btn-outline-primary">View</a>
+                    <a href="club.html?id=${btoa(club.club_id.toString())}" class="btn btn-sm btn-outline-primary">View</a>
                 </div>
                 `;
             });
@@ -927,19 +859,15 @@ async function loadUserMemberships() {
     }
 }
 
-// Load dashboard data when on dashboard page
 if (window.location.pathname.includes('dashboard.html')) {
-    // Add refresh parameter to URL to prevent caching
     if (!window.location.search.includes('refresh=')) {
         history.replaceState(null, null, `dashboard.html?refresh=${new Date().getTime()}`);
     }
     
-    // Call loadClubs immediately
     loadClubs();
 }
 
 
-// ========== LOGOUT ==========
 document.addEventListener('click', (e) => {
     if (e.target.id === 'logoutBtn') {
         e.preventDefault();
@@ -950,7 +878,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ========== UI UPDATES ==========
 function updateUsernameDisplay() {
     const username = localStorage.getItem('username');
     const usernameDisplays = document.querySelectorAll('#username-display');
@@ -961,8 +888,6 @@ function updateUsernameDisplay() {
     });
 }
 
-// ========== UI HANDLERS ==========
-// Dashboard refresh button
 document.addEventListener('click', (e) => {
     if (e.target.id === 'refresh-dashboard' || e.target.closest('#refresh-dashboard')) {
         e.preventDefault();
@@ -970,19 +895,15 @@ document.addEventListener('click', (e) => {
         
         const button = document.getElementById('refresh-dashboard');
         if (button) {
-            // Show loading state
             const originalHTML = button.innerHTML;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
             button.disabled = true;
             
-            // Force reload from server
             localStorage.removeItem('dashboardClubs');
             localStorage.removeItem('dashboardRefresh');
             
-            // Reload clubs
             loadClubs();
             
-            // Reset button after a short delay
     setTimeout(() => {
                 button.innerHTML = originalHTML;
                 button.disabled = false;
@@ -991,24 +912,20 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     updateNavigation();
     updateUsernameDisplay();
 
-    // Populate club dropdown on create-event page
     if (window.location.pathname.includes('create-event.html')) {
         console.log('Populating event club dropdown');
         loadEventClubs();
     }
 });
 
-// Function to load clubs into the event creation select dropdown
 async function loadEventClubs() {
     console.log('Loading clubs for event creation...');
     try {
-        // Fetch clubs from dashboard endpoint
         const data = await apiGet('/dashboard', true);
         const clubs = data.success ? data.clubs : data;
         const selectEl = document.getElementById('eventClub');
@@ -1024,7 +941,6 @@ async function loadEventClubs() {
     }
 }
 
-// Create Event form handler
 const createEventForm = document.getElementById('createEventForm');
 if (createEventForm) {
     console.log('Create event form detected, attaching submit handler');
@@ -1035,13 +951,11 @@ if (createEventForm) {
         const messageEl = document.getElementById('create-event-message');
         messageEl.innerHTML = '';
 
-        // Gather form values
         const title = document.getElementById('eventName').value.trim();
         const description = document.getElementById('eventDescription').value.trim();
         const encodedClubId = document.getElementById('eventClub').value;
         const clubId = atob(encodedClubId); // <--- decode here
         
-        // For now, we'll set private to false by default
         const isPrivate = false;
 
         if (!title || !description || !clubId) {
@@ -1083,36 +997,29 @@ if (createEventForm) {
     });
 }
 
-// ========== CLUB DETAILS PAGE ========== //
 function loadClubDetails(clubId) {
   console.log(`Loading club details for ID: ${clubId}`);
   
-  // Show loading indicators
   document.getElementById('club-name').innerHTML = '<span class="spinner-border text-primary" role="status"></span> Loading Club...';
   document.getElementById('club-description').textContent = 'Fetching club details...';
   document.getElementById('club-category').innerHTML = ''; // Clear category
   document.getElementById('member-list').innerHTML = '<li class="list-group-item text-center"><span class="spinner-border text-primary" role="status"></span> Loading members...</li>';
   document.getElementById('event-list').innerHTML = '<div class="col-12 text-center py-5"><span class="spinner-border text-primary" role="status"></span><p class="mt-2">Loading events...</p></div>';
   
-  // Check if user is logged in
   const token = localStorage.getItem('token');
   if (!token) {
     console.warn('No authentication token found, some features may be limited');
-    // Continue loading public data but hide actions requiring authentication
     document.getElementById('create-event-btn').classList.add('d-none');
     document.getElementById('invite-member-btn').classList.add('d-none');
   }
   
-  // Fetch club details
   apiGet(`/clubs/${clubId}`, token)
     .then(club => {
       console.log('Club details loaded:', club);
       
-      // Update club information in the UI
       document.getElementById('club-name').textContent = club.name || 'Unnamed Club';
       document.getElementById('club-description').textContent = club.description || 'No description available';
       
-      // Display club category if available
       if (club.category && club.category.trim() !== '') {
         document.getElementById('club-category').innerHTML = `
           <span class="category-badge">
@@ -1123,10 +1030,8 @@ function loadClubDetails(clubId) {
         document.getElementById('club-category').innerHTML = ''; // No category to display
       }
       
-      // Get current username
       const username = localStorage.getItem('username');
       
-      // Check if current user is the owner and show appropriate actions
       const userId = localStorage.getItem('userId');
       if (userId && club.owner_id === parseInt(userId)) {
         console.log('Current user is the club owner');
@@ -1139,18 +1044,14 @@ function loadClubDetails(clubId) {
           </button>
         `;
         
-        // Show create event button for club owners
         document.getElementById('create-event-btn').classList.remove('d-none');
         document.getElementById('invite-member-btn').classList.remove('d-none');
       } else if (token) {
-        // Show create event button for logged-in users (members)
         document.getElementById('create-event-btn').classList.remove('d-none');
       }
       
-      // Load club members
       displayMembers(clubId);
       
-      // Load events for this club
       loadClubEvents(clubId);
     })
     .catch(error => {
@@ -1171,16 +1072,13 @@ function loadClubEvents(clubId) {
   console.log(`Loading events for club ID: ${clubId}`);
   const token = localStorage.getItem('token');
   
-  // Show loading state
   const eventList = document.getElementById('event-list');
   eventList.innerHTML = '<div class="col-12 text-center py-5"><span class="spinner-border text-primary" role="status"></span><p class="mt-2">Loading events...</p></div>';
   
-  // First check if auth is working with debug endpoint
   apiGet('/debug-auth', true)
     .then(authResult => {
       console.log('Auth check result:', authResult);
       
-      // If auth is good, try to fetch club events
       return apiGet(`/clubs/${clubId}/events`, true)
         .then(events => {
           console.log('Club events loaded:', events);
@@ -1189,12 +1087,10 @@ function loadClubEvents(clubId) {
         .catch(error => {
           console.error('Error loading club events, trying all-events fallback:', error);
           
-          // If specific club events fails, try all events endpoint
           return apiGet('/all-events', true)
             .then(allEvents => {
               console.log('All events loaded, filtering for club:', allEvents);
               
-              // Filter events for this club
               const clubEvents = allEvents.filter(event => event.club_id == clubId);
               console.log('Filtered events for club:', clubEvents);
               
@@ -1209,11 +1105,10 @@ function loadClubEvents(clubId) {
     .catch(error => {
       console.error('All API attempts failed:', error);
       
-      // Fallback: Show mock events when all API attempts fail
       console.log('Falling back to mock events data');
       const mockEvents = [
         {
-          id: 1,
+          clubId: 1,
           title: 'Sample Event 1',
           description: 'This is a mock event to demonstrate the UI when the API is not available.',
           date: new Date().toISOString()
@@ -1226,7 +1121,6 @@ function loadClubEvents(clubId) {
         }
       ];
       
-      // Display mock events with a warning
       eventList.innerHTML = `
         <div class="col-12 mb-4">
           <div class="alert alert-warning">
@@ -1237,14 +1131,11 @@ function loadClubEvents(clubId) {
         </div>
       `;
       
-      // Use the same display function with mock data
       displayEvents(mockEvents, eventList, true);
     });
 }
 
-// Helper function to display events
 function displayEvents(events, eventList, append = false) {
-  // If not appending, clear the container
   if (!append) {
     eventList.innerHTML = '';
   }
@@ -1260,7 +1151,6 @@ function displayEvents(events, eventList, append = false) {
     return;
   }
 
-  // Display events
   events.forEach(event => {
     const eventDate = new Date(event.date || new Date());
     const formattedDate = eventDate.toLocaleDateString('en-US', { 
@@ -1294,13 +1184,10 @@ function displayEvents(events, eventList, append = false) {
   });
 }
 
-// ========== CLUB MEMBERSHIP FUNCTIONS ========== //
 
-// Check membership status and update UI
 async function loadMembershipStatus(clubId) {
   console.log(`Checking membership status for club ID: ${clubId}`);
   
-  // Check if user is logged in
   const token = localStorage.getItem('token');
   if (!token) {
     console.log('User not logged in, hiding membership actions');
@@ -1309,7 +1196,6 @@ async function loadMembershipStatus(clubId) {
   }
   
   try {
-    // Show loading state
     const statusText = document.getElementById('membership-status-text');
     const joinBtn = document.getElementById('join-club-btn');
     const leaveBtn = document.getElementById('leave-club-btn');
@@ -1318,13 +1204,10 @@ async function loadMembershipStatus(clubId) {
     joinBtn.classList.add('d-none');
     leaveBtn.classList.add('d-none');
     
-    // Get user ID from local storage
     const userId = localStorage.getItem('userId');
     
-    // Get club details to check if user is owner
     const clubResponse = await apiGet(`/clubs/${clubId}`, true);
     
-    // Check if user is the owner
     if (userId && clubResponse.owner_id === parseInt(userId)) {
       statusText.innerHTML = '<i class="fas fa-crown text-warning me-2"></i> You own this club';
       joinBtn.classList.add('d-none');
@@ -1332,24 +1215,20 @@ async function loadMembershipStatus(clubId) {
       return;
     }
     
-    // Check membership status
     const response = await apiGet(`/clubs/${clubId}/membership`, true);
     console.log('Membership status:', response);
     
     if (response.success) {
       if (response.isMember) {
-        // User is a member
         statusText.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> You are a member of this club';
         joinBtn.classList.add('d-none');
         leaveBtn.classList.remove('d-none');
       } else {
-        // User is not a member
         statusText.innerHTML = '<i class="fas fa-times-circle text-secondary me-2"></i> You are not a member of this club';
         joinBtn.classList.remove('d-none');
         leaveBtn.classList.add('d-none');
       }
     } else {
-      // Error checking membership
       statusText.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i> Could not check membership status';
       joinBtn.classList.add('d-none');
       leaveBtn.classList.add('d-none');
@@ -1361,11 +1240,9 @@ async function loadMembershipStatus(clubId) {
   }
 }
 
-// Join a club
 async function joinClub(clubId) {
   console.log(`Attempting to join club ID: ${clubId}`);
   
-  // Check if user is logged in
   const token = localStorage.getItem('token');
   if (!token) {
     alert('You must be logged in to join a club');
@@ -1374,7 +1251,6 @@ async function joinClub(clubId) {
   }
   
   try {
-    // Send join request
     const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/join`, {
       method: 'POST',
       headers: {
@@ -1387,15 +1263,12 @@ async function joinClub(clubId) {
     console.log('Join club response:', data);
     
     if (response.ok && data.success) {
-      // Success - reload membership status
       await loadMembershipStatus(clubId);
       
-      // Also reload member list 
       displayMembers(clubId);
       
       return data;
     } else {
-      // Error
       throw new Error(data.message || 'Unknown error');
     }
   } catch (error) {
@@ -1404,11 +1277,9 @@ async function joinClub(clubId) {
   }
 }
 
-// Leave a club
 async function leaveClub(clubId) {
   console.log(`Attempting to leave club ID: ${clubId}`);
   
-  // Check if user is logged in
   const token = localStorage.getItem('token');
   if (!token) {
     alert('You must be logged in to leave a club');
@@ -1417,7 +1288,6 @@ async function leaveClub(clubId) {
   }
   
   try {
-    // Send leave request
     const response = await fetch(`${API_BASE_URL}/clubs/${clubId}/leave`, {
       method: 'POST',
       headers: {
@@ -1430,15 +1300,12 @@ async function leaveClub(clubId) {
     console.log('Leave club response:', data);
     
     if (response.ok && data.success) {
-      // Success - reload membership status
       await loadMembershipStatus(clubId);
       
-      // Also reload member list
       displayMembers(clubId);
       
       return data;
     } else {
-      // Error
       throw new Error(data.message || 'Unknown error');
     }
   } catch (error) {
@@ -1447,19 +1314,16 @@ async function leaveClub(clubId) {
   }
 }
 
-// Get all members of a club
 async function getClubMembers(clubId) {
   console.log(`Getting members for club ID: ${clubId}`);
   
   try {
-    // Check if user is logged in
     const token = localStorage.getItem('token');
     if (!token) {
       console.log('Cannot get members: user not logged in');
       return [];
     }
     
-    // Fetch members from API
     const response = await apiGet(`/clubs/${clubId}/members`, true);
     
     if (response.success && response.members) {
@@ -1475,7 +1339,6 @@ async function getClubMembers(clubId) {
   }
 }
 
-// Display club members in the member list
 async function displayMembers(clubId) {
   console.log(`Displaying members for club ID: ${clubId}`);
   const memberList = document.getElementById('member-list');
@@ -1486,10 +1349,8 @@ async function displayMembers(clubId) {
   }
   
   try {
-    // Show loading state
     memberList.innerHTML = '<li class="list-group-item text-center"><span class="spinner-border text-primary" role="status"></span> Loading members...</li>';
     
-    // Get members from API
     const members = await getClubMembers(clubId);
     
     if (!members || members.length === 0) {
@@ -1501,14 +1362,12 @@ async function displayMembers(clubId) {
       return;
     }
     
-    // Clear the list and add members
     memberList.innerHTML = '';
     
     members.forEach(member => {
       const memberItem = document.createElement('li');
       memberItem.className = 'list-group-item member-item';
       
-      // Determine the badge based on role
       let roleDisplay = 'Member';
       if (member.role === 'owner') {
         roleDisplay = '<span class="badge bg-primary">Owner</span>';
@@ -1558,16 +1417,13 @@ function showEventDetails(eventId) {
   const deleteButton = document.getElementById('delete-event-btn');
   const actionsContainer = document.getElementById('event-actions');
 
-  // Show loading state
   if (loadingElement) loadingElement.classList.remove('d-none');
   if (contentElement) contentElement.classList.add('d-none');
   if (errorElement) errorElement.classList.add('d-none');
   if (actionsContainer) actionsContainer.classList.add('d-none');
 
-  // Get the token from localStorage
   const token = localStorage.getItem('token');
   
-  // Fetch event details
   fetch(`${API_BASE_URL}/events/${eventId}`, {
     headers: {
       'Authorization': token ? `Bearer ${token}` : ''
@@ -1583,16 +1439,13 @@ function showEventDetails(eventId) {
     if (loadingElement) loadingElement.classList.add('d-none');
     if (contentElement) contentElement.classList.remove('d-none');
     
-    // Update event details
     if (titleElement) titleElement.textContent = data.title;
     if (descriptionElement) descriptionElement.textContent = data.description;
     if (dateElement) dateElement.textContent = new Date(data.created_at).toLocaleDateString();
     
-    // Update club link
     if (clubLinkElement && data.club_id) {
       clubLinkElement.href = `club.html?id=${data.club_id}`;
       
-      // Fetch club name if needed
       fetch(`${API_BASE_URL}/clubs/${data.club_id}`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : ''
@@ -1608,7 +1461,6 @@ function showEventDetails(eventId) {
       });
     }
     
-    // Check if current user is the owner and show edit/delete buttons
     if (token && data.created_by) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -1623,7 +1475,6 @@ function showEventDetails(eventId) {
       }
     }
     
-    // Show actions container
     if (actionsContainer) actionsContainer.classList.remove('d-none');
   })
   .catch(error => {
@@ -1636,25 +1487,19 @@ function showEventDetails(eventId) {
   });
 }
 
-// ========== NOTIFICATIONS AND INVITES ==========
 
-// Variable to track if invites have been loaded already
 let invitesLoaded = false;
 let invitesLoadInProgress = false;
 
-// Function to load user invites
 async function loadUserInvites() {
-  // Prevent multiple simultaneous calls to load invites
   if (invitesLoadInProgress) {
     console.log('Invite loading already in progress, waiting...');
-    // Wait for the current load to finish
     while (invitesLoadInProgress) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     return JSON.parse(localStorage.getItem('userInvites') || '[]');
   }
   
-  // If invites were already loaded in this session, don't reload them
   if (invitesLoaded) {
     console.log('Invites already loaded, using cached data');
     return JSON.parse(localStorage.getItem('userInvites') || '[]');
@@ -1663,7 +1508,6 @@ async function loadUserInvites() {
   try {
     invitesLoadInProgress = true;
     console.log('Loading user invites...');
-    // Try the /api/invites endpoint first (used by invites.html)
     let response;
     try {
       response = await apiGet('/api/invites', true);
@@ -1673,13 +1517,10 @@ async function loadUserInvites() {
     }
     
     if (response && response.success) {
-      // Store invites in localStorage for easy access
       localStorage.setItem('userInvites', JSON.stringify(response.invites));
       
-      // Update notification count in UI
       updateNotificationCount(response.invites.length);
       
-      // Mark invites as loaded for this session
       invitesLoaded = true;
       
       return response.invites;
@@ -1695,19 +1536,16 @@ async function loadUserInvites() {
   }
 }
 
-// Function to update notification count in UI
 function updateNotificationCount(count) {
   const notificationsCountEl = document.getElementById('notifications-count');
   if (notificationsCountEl) {
     notificationsCountEl.textContent = count;
     
-    // Add badge to notification icon if there are notifications
     const notificationIcon = document.querySelector('.fa-bell').parentElement;
     if (notificationIcon) {
       if (count > 0) {
         notificationIcon.classList.add('position-relative');
         
-        // Check if badge already exists
         let badge = notificationIcon.querySelector('.notification-badge');
         if (!badge) {
           badge = document.createElement('span');
@@ -1718,7 +1556,6 @@ function updateNotificationCount(count) {
         badge.textContent = count;
         badge.style.display = 'block';
       } else {
-        // Hide badge if no notifications
         const badge = notificationIcon.querySelector('.notification-badge');
         if (badge) {
           badge.style.display = 'none';
@@ -1728,12 +1565,9 @@ function updateNotificationCount(count) {
   }
 }
 
-// Show invites modal with all pending invites
 function showInvitesModal() {
-  // Get invites from localStorage
   const invites = JSON.parse(localStorage.getItem('userInvites') || '[]');
   
-  // Create modal if it doesn't exist
   let modal = document.getElementById('invitesModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -1746,7 +1580,6 @@ function showInvitesModal() {
     document.body.appendChild(modal);
   }
   
-  // Generate modal content
   let invitesHtml = '';
   if (invites.length > 0) {
     invitesHtml = invites.map(invite => `
@@ -1776,7 +1609,6 @@ function showInvitesModal() {
     `;
   }
   
-  // Set modal content
   modal.innerHTML = `
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -1796,13 +1628,10 @@ function showInvitesModal() {
     </div>
   `;
   
-  // Initialize modal
   const modalInstance = new bootstrap.Modal(modal);
   modalInstance.show();
   
-  // Add event listeners for accept/reject buttons
   setTimeout(() => {
-    // Accept invite buttons
     const acceptButtons = document.querySelectorAll('.accept-invite-btn');
     acceptButtons.forEach(button => {
       button.addEventListener('click', async () => {
@@ -1811,7 +1640,6 @@ function showInvitesModal() {
       });
     });
     
-    // Reject invite buttons
     const rejectButtons = document.querySelectorAll('.reject-invite-btn');
     rejectButtons.forEach(button => {
       button.addEventListener('click', async () => {
@@ -1822,13 +1650,10 @@ function showInvitesModal() {
   }, 500);
 }
 
-// Force reloading of invites to update UI
 function forceReloadInvites() {
   console.log('Forcing invites reload');
-  // Immediately mark as unloaded
   invitesLoaded = false;
   
-  // Only reload if not already in progress
   if (!invitesLoadInProgress) {
     loadUserInvites();
   } else {
@@ -1836,19 +1661,15 @@ function forceReloadInvites() {
   }
 }
 
-// Function to accept an invite
 async function acceptInvite(inviteId, buttonEl) {
   try {
-    // Disable button and show loading state
     buttonEl.disabled = true;
     const originalText = buttonEl.innerHTML;
     buttonEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Accepting...';
     
-    // Call the API
     const response = await apiPost(`/invites/${inviteId}/accept`, {}, true);
     
     if (response && response.success) {
-      // Show success message
       const card = buttonEl.closest('.card');
       card.innerHTML = `
         <div class="card-body text-center">
@@ -1859,17 +1680,14 @@ async function acceptInvite(inviteId, buttonEl) {
         </div>
       `;
       
-      // Update invites list
       const invites = JSON.parse(localStorage.getItem('userInvites') || '[]');
       const updatedInvites = invites.filter(invite => invite.id != inviteId);
       localStorage.setItem('userInvites', JSON.stringify(updatedInvites));
       
-      // Force reload invites to update UI
       forceReloadInvites();
       
       
     } else {
-      // Show error and reset button
       alert('Error accepting invite: ' + (response?.message || 'Unknown error'));
       buttonEl.disabled = false;
       buttonEl.innerHTML = originalText;
@@ -1878,30 +1696,24 @@ async function acceptInvite(inviteId, buttonEl) {
     console.error('Error accepting invite:', error);
     alert('Error accepting invite: ' + error.message);
     
-    // Reset button
     buttonEl.disabled = false;
     buttonEl.innerHTML = originalText;
   }
 }
 
-// Function to reject an invite
 async function rejectInvite(inviteId, buttonEl) {
   try {
-    // Confirm rejection
     if (!confirm('Are you sure you want to reject this invite?')) {
       return;
     }
     
-    // Disable button and show loading state
     buttonEl.disabled = true;
     const originalText = buttonEl.innerHTML;
     buttonEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Rejecting...';
     
-    // Call the API
     const response = await apiPost(`/invites/${inviteId}/reject`, {}, true);
     
     if (response && response.success) {
-      // Show success message
       const card = buttonEl.closest('.card');
       card.innerHTML = `
         <div class="card-body text-center">
@@ -1911,17 +1723,13 @@ async function rejectInvite(inviteId, buttonEl) {
         </div>
       `;
       
-      // Update invites list
       const invites = JSON.parse(localStorage.getItem('userInvites') || '[]');
       const updatedInvites = invites.filter(invite => invite.id != inviteId);
       localStorage.setItem('userInvites', JSON.stringify(updatedInvites));
       
-      // Force reload invites to update UI
       forceReloadInvites();
       
-      // No need to refresh club memberships for rejections
     } else {
-      // Show error and reset button
       alert('Error rejecting invite: ' + (response?.message || 'Unknown error'));
       buttonEl.disabled = false;
       buttonEl.innerHTML = originalText;
@@ -1930,18 +1738,14 @@ async function rejectInvite(inviteId, buttonEl) {
     console.error('Error rejecting invite:', error);
     alert('Error rejecting invite: ' + error.message);
     
-    // Reset button
     buttonEl.disabled = false;
     buttonEl.innerHTML = originalText;
   }
 }
 
-// Run auth check on all pages when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  // Check authentication status and redirect if needed
   checkAuth();
   
-  // Setup logout button if it exists
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function(e) {
@@ -1954,7 +1758,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Load user invites if on dashboard
   if (window.location.pathname.includes('dashboard.html')) {
     loadUserInvites();
   }

@@ -250,7 +250,6 @@
 <script src="scripts.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', async function() {
-    // Update navigation
     if (typeof updateNavigation === 'function') {
       updateNavigation();
     }
@@ -265,13 +264,11 @@
     const errorText = document.getElementById('error-text');
     const goToClubButton = document.getElementById('go-to-club-button');
     
-    // Get token from URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const errorParam = urlParams.get('error');
     const autoAccept = urlParams.get('auto_accept');
     
-    // Set the token in the login link
     const loginLink = document.getElementById('login-link');
     if (loginLink && token) {
       loginLink.href = `login.html?return=${encodeURIComponent('/accept-invite.html?token=' + token + '&auto_accept=true')}`;
@@ -294,7 +291,6 @@
     }
     
     try {
-      // Verify the token and get invite details
       const response = await fetch(`http://localhost:3000/accept-invite?token=${encodeURIComponent(token)}`, {
         headers: {
           'Accept': 'application/json'
@@ -307,27 +303,22 @@
         throw new Error(data.message || 'Error verifying invitation');
       }
       
-      // Token is valid, show invite details
       document.getElementById('club-name').textContent = data.clubName || `Club #${data.clubId}`;
       document.getElementById('role-type').textContent = data.role || 'Member';
       
-      // Set the go-to-club button URL
       if (goToClubButton) {
         goToClubButton.href = `club.html?id=${data.clubId}`;
       }
       
-      // Check if user is logged in
       const authToken = localStorage.getItem('token');
       
       if (!authToken) {
-        // User is not logged in
         loading.classList.add('d-none');
         inviteDetails.classList.remove('d-none');
         notLoggedIn.classList.remove('d-none');
         return;
       }
       
-      // User is logged in, verify if it's the right account
       try {
         const userEmail = localStorage.getItem('userEmail');
         const invitedEmail = data.email;
@@ -335,31 +326,26 @@
         document.getElementById('invited-email').textContent = invitedEmail || 'Unknown';
         
         if (userEmail && userEmail !== invitedEmail) {
-          // Wrong account
           document.getElementById('invite-email-notice').textContent = invitedEmail;
           loading.classList.add('d-none');
           inviteDetails.classList.remove('d-none');
           wrongAccount.classList.remove('d-none');
           
-          // Add logout handler
           document.getElementById('logout-button').addEventListener('click', function() {
             localStorage.removeItem('token');
             localStorage.removeItem('username');
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userId');
             
-            // Redirect to login with return URL - make sure to include auto_accept=true
             window.location.href = `login.html?return=${encodeURIComponent('/accept-invite.html?token=' + token + '&auto_accept=true')}`;
           });
           
           return;
         }
         
-        // Right account, show accept/reject buttons or auto-accept
         loading.classList.add('d-none');
         inviteDetails.classList.remove('d-none');
         
-        // Function to handle invite acceptance
         const acceptInvite = async () => {
           try {
             const acceptButton = document.getElementById('accept-button');
@@ -382,11 +368,9 @@
               throw new Error(acceptData.message || 'Error accepting invitation');
             }
             
-            // Success!
             if (actionButtons) actionButtons.classList.add('d-none');
             successMessage.classList.remove('d-none');
             
-            // If auto-accepted, redirect to club page after a short delay
             if (autoAccept === 'true') {
               setTimeout(() => {
                 window.location.href = `club.html?id=${data.clubId}`;
@@ -403,15 +387,11 @@
           }
         };
         
-        // If auto_accept parameter is present, accept automatically
         if (autoAccept === 'true') {
-          // Auto-accept the invitation
           await acceptInvite();
         } else {
-          // Show manual accept/reject buttons
           actionButtons.classList.remove('d-none');
           
-          // Setup button handlers
           document.getElementById('accept-button').addEventListener('click', acceptInvite);
           
           document.getElementById('reject-button').addEventListener('click', async function() {
@@ -437,14 +417,12 @@
                 throw new Error(rejectData.message || 'Error declining invitation');
               }
               
-              // Successfully declined
               actionButtons.classList.add('d-none');
               errorMessage.classList.remove('d-none');
               errorMessage.classList.remove('alert-danger');
               errorMessage.classList.add('alert-info');
               errorText.textContent = 'You have declined this invitation.';
               
-              // Add a button to dashboard
               const dashboardButton = document.createElement('a');
               dashboardButton.href = 'dashboard.html';
               dashboardButton.className = 'btn btn-primary d-block mt-3';

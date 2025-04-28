@@ -459,31 +459,13 @@
 <script src="scripts.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Update navigation
     if (typeof updateNavigation === 'function') {
       updateNavigation();
     } else if (typeof updateNavbarLinks === 'function') {
       updateNavbarLinks();
     }
 
-    const canEdit = localStorage.getItem('canEdit') === 'true';
-    if (canEdit) {
-      const clubActionsContainer = document.getElementById('club-actions');
-      if (clubActionsContainer) {
-        clubActionsContainer.innerHTML = `
-          <button class="btn btn-outline-primary me-2" id="edit-club-btn">
-            <i class="fas fa-edit"></i> Edit Club
-          </button>
-          <button class="btn btn-outline-danger" id="delete-club-btn">
-            <i class="fas fa-trash-alt"></i> Delete Club
-          </button>
-        `;
-      }
-    }
-});
 
-
-    // Get the club ID from URL parameters
 	const params = new URLSearchParams(window.location.search);
 	let clubId = params.get('id');
 
@@ -491,11 +473,10 @@
   		document.getElementById('club-name').textContent = 'Club Not Found';
   		document.getElementById('club-description').innerHTML = '<div class="alert alert-danger">No club ID provided in the URL. Please go back and select a club.</div>';
   		document.getElementById('membership-section').classList.add('d-none');
-  	return;
+  		return;
 	}
 
 	try {
-  		// Decode Base64 encoded ID
   		clubId = atob(clubId);
 	} catch (error) {
   	console.error('Invalid ID format:', error);
@@ -517,13 +498,10 @@
     
     console.log(`Loading club with ID: ${clubId}`);
     
-    // Call the loadClubDetails function
     loadClubDetails(clubId);
     
-    // Check membership status
     loadMembershipStatus(clubId);
     
-    // Setup create event button click handler
     const createEventBtn = document.getElementById('create-event-btn');
     if (createEventBtn) {
       createEventBtn.addEventListener('click', () => {
@@ -532,7 +510,6 @@
       });
     }
     
-    // Setup invite member button click handler
     const inviteMemberBtn = document.getElementById('invite-member-btn');
     if (inviteMemberBtn) {
       inviteMemberBtn.addEventListener('click', () => {
@@ -541,7 +518,6 @@
       });
     }
     
-    // Setup join club button
     const joinClubBtn = document.getElementById('join-club-btn');
     if (joinClubBtn) {
       joinClubBtn.addEventListener('click', async () => {
@@ -550,7 +526,6 @@
         
         try {
           await joinClub(clubId);
-          // Membership status and member list are updated in the joinClub function
         } catch (error) {
           console.error('Error joining club:', error);
           alert('Failed to join the club: ' + (error.message || 'Please try again later.'));
@@ -561,7 +536,6 @@
       });
     }
     
-    // Setup leave club button
     const leaveClubBtn = document.getElementById('leave-club-btn');
     if (leaveClubBtn) {
       leaveClubBtn.addEventListener('click', async () => {
@@ -571,7 +545,6 @@
           
           try {
             await leaveClub(clubId);
-            // Membership status and member list are updated in the leaveClub function
           } catch (error) {
             console.error('Error leaving club:', error);
             alert('Failed to leave the club: ' + (error.message || 'Please try again later.'));
@@ -583,7 +556,6 @@
       });
     }
 
-    // Watch for club action buttons to be added dynamically
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList') {
@@ -592,13 +564,10 @@
       });
     });
 
-    // Start observing the club-actions div for changes
     observer.observe(document.getElementById('club-actions'), { childList: true });
   });
 
-  // Setup event listeners for Edit and Delete Club buttons
   function setupClubActionButtons(clubId) {
-    // Edit Club button
     const editClubBtn = document.querySelector('#club-actions button.btn-outline-primary');
     if (editClubBtn) {
       editClubBtn.addEventListener('click', () => {
@@ -606,7 +575,6 @@
       });
     }
 
-    // Delete Club button
     const deleteClubBtn = document.querySelector('#club-actions button.btn-outline-danger');
     if (deleteClubBtn) {
       deleteClubBtn.addEventListener('click', () => {
@@ -617,15 +585,12 @@
     }
   }
 
-  // Function to show edit club modal
   function showEditClubModal(clubId) {
-    // Get current club data
     const clubName = document.getElementById('club-name').textContent;
     const clubDescription = document.getElementById('club-description').textContent;
     const categoryElement = document.querySelector('#club-category .category-badge');
     const category = categoryElement ? categoryElement.textContent.trim().replace(/.*?(\w+.*)$/, '$1') : '';
 
-    // Create modal HTML
     const modalHtml = `
       <div class="modal fade" id="editClubModal" tabindex="-1" aria-labelledby="editClubModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -660,14 +625,11 @@
       </div>
     `;
 
-    // Append modal to body
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    // Create Bootstrap modal instance
     const modal = new bootstrap.Modal(document.getElementById('editClubModal'));
     modal.show();
 
-    // Setup save button
     document.getElementById('saveClubChanges').addEventListener('click', async () => {
       const name = document.getElementById('editClubName').value.trim();
       const description = document.getElementById('editClubDescription').value.trim();
@@ -679,19 +641,15 @@
         return;
       }
 
-      // Disable save button and show loading state
       const saveBtn = document.getElementById('saveClubChanges');
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
 
       try {
-        // Use POST instead of PUT since our server seems to have issues with PUT
         await apiPost(`/clubs/${clubId}/update`, { name, description, category }, true);
         
-        // Close modal
         modal.hide();
         
-        // Reload club details
         loadClubDetails(clubId);
       } catch (error) {
         console.error('Error updating club:', error);
@@ -701,10 +659,8 @@
       }
     });
 
-    // Handle modal close and cleanup
     const modalElement = document.getElementById('editClubModal');
     modalElement.addEventListener('hidden.bs.modal', function () {
-      // Check if the element still exists before trying to remove it
       const modalToRemove = document.getElementById('editClubModal');
       if (modalToRemove) {
         modalToRemove.remove();
@@ -712,17 +668,14 @@
     });
   }
 
-  // Function to delete a club
   async function deleteClub(clubId) {
     try {
-      // Show loading state in delete button
       const deleteBtn = document.querySelector('#club-actions button.btn-outline-danger');
       if (deleteBtn) {
         deleteBtn.disabled = true;
         deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Deleting...';
       }
 
-      // Use POST instead of DELETE since our server seems to have issues with DELETE
       await apiPost(`/clubs/${clubId}/delete`, {}, true);
       
       alert('Club deleted successfully');
@@ -737,6 +690,7 @@
       }
     }
   }
+
 </script>
 </body>
 </html>

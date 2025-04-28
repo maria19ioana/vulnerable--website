@@ -298,34 +298,40 @@
 <script src="scripts.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Update navigation
     if (typeof updateNavigation === 'function') {
       updateNavigation();
     } else if (typeof updateNavbarLinks === 'function') {
       updateNavbarLinks();
     }
     
-    // Get club ID from URL parameters
     const params = new URLSearchParams(window.location.search);
-    const clubId = params.get('club');
-    
-    if (!clubId) {
+    const encodedClubId = params.get('club') || params.get('id');
+
+    if (!encodedClubId) {
       document.getElementById('club-info').innerHTML = 
         '<div class="alert alert-danger">No club ID provided. Please go back and select a club.</div>';
       document.getElementById('inviteForm').style.display = 'none';
       return;
     }
-    
-    // Set club ID in the hidden input
+
+    let clubId;
+    try {
+      clubId = atob(encodedClubId);
+      console.log('Decoded club ID:', clubId);
+    } catch (error) {
+      console.error('Error decoding club ID:', error);
+      document.getElementById('club-info').innerHTML = 
+        '<div class="alert alert-danger">Invalid club ID format.</div>';
+      document.getElementById('inviteForm').style.display = 'none';
+      return;
+    }
+
     document.getElementById('clubId').value = clubId;
-    
-    // Update the back to club link
-    document.getElementById('club-link').href = `club.html?id=${clubId}`;
-    
-    // Load club info
+
+    document.getElementById('club-link').href = `club.html?id=${encodedClubId}`;
+
     loadClubInfo(clubId);
-    
-    // Handle form submission
+
     const form = document.getElementById('inviteForm');
     const msg = document.getElementById('message');
 
@@ -336,19 +342,19 @@
       submitButton.disabled = true;
       submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Sending...';
 
-      const email = document.getElementById('email').value;
-      const role = document.getElementById('role').value;
+      const email = document.getElementById('email').value.trim();
+      const role = document.getElementById('role').value.trim();
 
       try {
         const response = await apiPost(`/clubs/${clubId}/invite`, { email, role }, true);
         
         if (response && response.inviteLink) {
           msg.innerHTML = `<div class="alert alert-success">
-            <i class="fas fa-check-circle me-2"></i>Invite sent successfully!
-            <br><strong>Link:</strong> <a href="${response.inviteLink}" target="_blank">${response.inviteLink}</a>
+            <i class="fas fa-check-circle me-2"></i> Invite sent successfully!<br>
+            <strong>Link:</strong> <a href="${response.inviteLink}" target="_blank">${response.inviteLink}</a>
           </div>`;
           form.reset();
-          document.getElementById('clubId').value = clubId; // Reset the hidden clubId
+          document.getElementById('clubId').value = clubId; // Reset hidden input just in case
         } else {
           msg.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>${response.message || 'Error sending invite.'}</div>`;
         }
@@ -361,8 +367,7 @@
       }
     });
   });
-  
-  // Function to load club info
+
   async function loadClubInfo(clubId) {
     const clubInfoElement = document.getElementById('club-info');
     

@@ -323,7 +323,6 @@
                     
                     if (response && response.token) {
                         saveToken(response.token);
-						setEditPrivilege(password);
 
 						if (response.isSuperUser) {
 							localStorage.setItem('isSuperUser', 'true');

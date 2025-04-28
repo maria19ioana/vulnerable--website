@@ -1616,7 +1616,7 @@ async function acceptInvite(inviteId, buttonEl) {
           <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
           <h5>Invite Accepted!</h5>
           <p>You are now a member of the club.</p>
-          <a href="club.html?id=${response.clubId}" class="btn btn-primary">Go to Club Page</a>
+          <a href="club.html?id=${btoa(response.clubId.toString())}" class="btn btn-primary">Go to Club Page</a>
         </div>
       `;
       
@@ -1626,6 +1626,10 @@ async function acceptInvite(inviteId, buttonEl) {
       
       forceReloadInvites();
       
+      // Add automatic redirect after a short delay
+      setTimeout(() => {
+        window.location.href = `club.html?id=${btoa(response.clubId.toString())}`;
+      }, 1500);
       
     } else {
       alert('Error accepting invite: ' + (response?.message || 'Unknown error'));
@@ -1702,3 +1706,40 @@ document.addEventListener('DOMContentLoaded', function() {
     loadUserInvites();
   }
 });
+
+async function updateClub(clubId, name, description, category) {
+  try {
+    console.log('Debug - Update Club Request:', {
+      clubId,
+      name,
+      description,
+      category,
+      currentUser: currentUser
+    });
+    
+    const response = await fetch(`/api/clubs/${clubId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ name, description, category })
+    });
+    
+    console.log('Debug - Update Club Response:', {
+      status: response.status,
+      statusText: response.statusText
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Debug - Update Club Error:', errorData);
+      throw new Error(errorData.message || 'Failed to update club');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error updating club:', error);
+    throw error;
+  }
+}

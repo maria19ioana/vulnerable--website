@@ -476,8 +476,8 @@
       
       if (action === 'accept') {
         if (response && response.clubId) {
-          console.log(`Redirecting to club page: club.html?id=${response.clubId}`);
-          window.location.href = `club.html?id=${response.clubId}`;
+          console.log(`Redirecting to club page: club.html?id=${btoa(response.clubId.toString())}`);
+          window.location.href = `club.html?id=${btoa(response.clubId.toString())}`;
         } else {
           console.log('No club ID found in response, redirecting to dashboard');
           window.location.href = 'dashboard.html';

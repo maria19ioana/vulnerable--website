@@ -290,41 +290,33 @@
 <!-- Custom Scripts -->
 <script src="js/auth.js"></script>
 <script>
-  // Global API configuration
   const API_BASE_URL = 'http://localhost:3000';
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Check if user is logged in
     if (!isLoggedIn()) {
       window.location.href = 'login.html';
     }
 
-    // Set up logout button
     document.getElementById('logoutBtn').addEventListener('click', (e) => {
       e.preventDefault();
       logout();
     });
 
-    // Load invites
     loadInvites();
 
-    // Set up refresh button
     document.getElementById('refresh-btn').addEventListener('click', () => {
       loadInvites();
     });
   });
   
   function isLoggedIn() {
-    // Check if a token exists
     return !!localStorage.getItem('token');
   }
   
   function logout() {
-    // Clear user data from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('username');
-    // Redirect to login page
     window.location.href = 'login.html';
   }
 
@@ -335,16 +327,13 @@
     const invitesList = document.getElementById('invites-list');
     const noInvitesEl = document.getElementById('no-invites');
 
-    // Show loading, hide other elements
     loadingEl.style.display = 'block';
     errorEl.style.display = 'none';
     invitesContainer.style.display = 'none';
 
-    // Get JWT token
     const token = localStorage.getItem('token');
     
     if (!token) {
-      // Handle missing token
       errorEl.style.display = 'block';
       loadingEl.style.display = 'none';
       document.getElementById('error-message').textContent = 'Authentication token is missing. Please log in again.';
@@ -353,48 +342,35 @@
 
     try {
       console.log('Loading user invites...');
-      // The correct endpoint is '/user/invites' in invites.js, but it might not be directly available
-      // Try using the existing API function from scripts.js if it's available (replicating the dashboard)
       const response = await apiGet('/api/invites');
       
-      // Hide loading
       loadingEl.style.display = 'none';
       
-      // Show invites container
       invitesContainer.style.display = 'block';
       
-      // Clear previous invites
       invitesList.innerHTML = '';
       
-      // Expected response format might be different than we expect
-      // Check different ways the data might be structured
       const invites = response.invites || response || [];
       
       if (invites.length > 0) {
-        // We have invites, show them
         noInvitesEl.style.display = 'none';
         
-        // Loop through invites and create elements
         invites.forEach(invite => {
           const inviteEl = createInviteElement(invite);
           invitesList.appendChild(inviteEl);
         });
       } else {
-        // No invites, show empty state
         invitesList.innerHTML = '';
         noInvitesEl.style.display = 'block';
       }
     } catch (error) {
       console.error('Error loading invites:', error);
       
-      // Hide loading, show error
       loadingEl.style.display = 'none';
       errorEl.style.display = 'block';
       document.getElementById('error-message').textContent = `Failed to load invites: ${error.message}`;
       
-      // Try backup method for demonstration
       try {
-        // Create some sample invites for demonstration when API fails
         invitesContainer.style.display = 'block';
         invitesList.innerHTML = '';
         
@@ -420,7 +396,6 @@
         
         noInvitesEl.style.display = 'none';
       } catch (err) {
-        // If backup method also fails, show no invites
         invitesList.innerHTML = '';
         noInvitesEl.style.display = 'block';
       }
@@ -452,7 +427,6 @@
       </div>
     `;
     
-    // Add event listeners
     inviteItemDiv.querySelector('.accept-invite').addEventListener('click', (e) => {
       const inviteId = e.target.closest('.accept-invite').dataset.inviteId;
       acceptInvite(inviteId);
@@ -483,49 +457,40 @@
       return;
     }
     
-    // Show loading
     document.getElementById('loading').style.display = 'block';
     
     try {
       console.log(`Sending ${action} request for invite ID: ${inviteId}`);
       
-      // Try the endpoint from the server.js file
       let response;
       try {
         response = await apiPost(`/api/invites/${inviteId}/${action}`, {});
       } catch (e) {
         console.log(`Error with /api/invites endpoint, trying /invites endpoint`, e);
-        // If that fails, try the endpoint from invites.js
         response = await apiPost(`/invites/${inviteId}/${action}`, {});
       }
       
       console.log(`${action} response:`, response);
       
-      // Hide loading
       document.getElementById('loading').style.display = 'none';
       
       if (action === 'accept') {
-        // Redirect to club page
         if (response && response.clubId) {
           console.log(`Redirecting to club page: club.html?id=${response.clubId}`);
           window.location.href = `club.html?id=${response.clubId}`;
         } else {
-          // If no club ID in response, redirect to dashboard
           console.log('No club ID found in response, redirecting to dashboard');
           window.location.href = 'dashboard.html';
         }
       } else {
-        // Refresh invites list
         loadInvites();
       }
     } catch (error) {
       console.error(`Error ${action}ing invite:`, error);
-      // Hide loading, show error
       document.getElementById('loading').style.display = 'none';
       document.getElementById('error').style.display = 'block';
       document.getElementById('error-message').textContent = `Failed to ${action} invite: ${error.message}`;
 
-      // For demonstration, allow manual removal when API fails
       if (confirm(`API error: ${error.message}\n\nFor demo purposes, simulate successful ${action}?`)) {
         if (action === 'accept') {
           window.location.href = 'dashboard.html';
@@ -543,7 +508,6 @@
     }
   }
   
-  // API helper functions
   async function apiGet(endpoint) {
     const headers = {
       'Authorization': `Bearer ${localStorage.getItem('token')}`

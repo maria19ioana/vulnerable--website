@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 
-// The secret must match what's used in the sign function
 const SECRET = 'supersecret';
 
 function sign(user) {
@@ -14,7 +13,6 @@ function sign(user) {
   return token;
 }
 
-// Function to create invite tokens
 function signInvite(data) {
   console.log(`Signing invite token for: ${data.email} (Club: ${data.group}, Role: ${data.level})`);
   const token = jwt.sign(
@@ -31,7 +29,6 @@ function signInvite(data) {
   return token;
 }
 
-// Function to decode a token without verifying (VULNERABLE - use with caution)
 function decode(token) {
   try {
     return jwt.decode(token);
@@ -43,7 +40,6 @@ function decode(token) {
 
 function verify(token) {
   try {
-    // First check if there's an "alg": "none" attack attempt
     const decodedHeader = JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString('utf-8'));
 
     if (decodedHeader.alg === 'none') {
@@ -53,7 +49,6 @@ function verify(token) {
       return payload; // Vulnerable by design
     }
 
-    // Otherwise, use the proper verification
     const decoded = jwt.verify(token, SECRET);
     console.log(`Token verified successfully for: ${decoded.username || decoded.email || 'unknown'}`);
     return decoded;
@@ -63,7 +58,6 @@ function verify(token) {
   }
 }
 
-// Create a standalone function that doesn't throw for middleware use
 function verifyToken(token) {
   try {
     return verify(token);
@@ -73,7 +67,6 @@ function verifyToken(token) {
   }
 }
 
-// Let's add a test function to help debug token issues
 function debugToken(token) {
   try {
     const parts = token.split('.');

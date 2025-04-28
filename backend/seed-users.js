@@ -1,11 +1,8 @@
-// Script to create test users in the database
 const db = require('./db');
 
-// Wait for the database to initialize
 setTimeout(() => {
     console.log('Creating test users...');
 
-    // Create test admin user
     db.run(
         'INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)',
         ['admin', 'password', 'admin'],
@@ -20,7 +17,6 @@ setTimeout(() => {
         }
     );
 
-    // Create regular test user
     db.run(
         'INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)',
         ['user', 'password', 'user'],
@@ -35,7 +31,6 @@ setTimeout(() => {
         }
     );
 
-    // Create test club
     db.run(
         'INSERT OR IGNORE INTO clubs (name, owner_id) VALUES (?, ?)',
         ['Test Club', 1],

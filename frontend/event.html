@@ -465,7 +465,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.location.href = 'login.html';
   });
 
-  // Get and decode event ID
   const urlParams = new URLSearchParams(window.location.search);
   const encodedEventId = urlParams.get('id');
 
@@ -578,7 +577,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// Function to load event details
 function showEventDetails(eventId) {
   const titleElement = document.getElementById('event-title');
   const descriptionElement = document.getElementById('event-description');
@@ -648,7 +646,6 @@ function showEventDetails(eventId) {
   });
 }
 
-// Function to show toast notifications
 function showToast(message, type = 'info') {
   const toastContainer = document.querySelector('.toast-container');
   const toastId = `toast-${Date.now()}`;

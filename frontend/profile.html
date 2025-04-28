@@ -334,12 +334,10 @@
 <script src="scripts.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Display username on page load
     const usernameField = document.getElementById('username');
     const usernameDisplay = document.getElementById('username-display');
     const emailField = document.getElementById('email');
     
-    // Load user data
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -347,7 +345,6 @@
         return;
       }
       
-      // Display username from token
       const tokenParts = token.split('.');
       if (tokenParts.length === 3) {
         try {
@@ -361,13 +358,11 @@
         }
       }
       
-      // Fetch user profile data including email
       fetchUserProfile();
     } catch (error) {
       console.error('Error loading user data:', error);
     }
     
-    // Handle email update form submission
     const emailForm = document.getElementById('emailForm');
     const emailMessage = document.getElementById('email-message');
     
@@ -389,12 +384,10 @@
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
       
       try {
-        // Make API call to update email
         const response = await apiPost('/update-email', { email, password }, true);
         
         if (response && response.success) {
           emailMessage.innerHTML = '<div class="alert alert-success">Email updated successfully!</div>';
-          // Clear password field but keep email visible
           document.getElementById('emailPassword').value = '';
         } else {
           emailMessage.innerHTML = `<div class="alert alert-danger">${response?.message || 'Failed to update email. Please check your password.'}</div>`;
@@ -408,7 +401,6 @@
       }
     });
     
-    // Handle password change form submission
     const passwordForm = document.getElementById('passwordForm');
     const passwordMessage = document.getElementById('password-message');
     
@@ -436,7 +428,6 @@
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
       
       try {
-        // Make API call to update password
         const response = await apiPost('/update-password', { 
           currentPassword, 
           newPassword 
@@ -444,7 +435,6 @@
         
         if (response && response.success) {
           passwordMessage.innerHTML = '<div class="alert alert-success">Password updated successfully!</div>';
-          // Clear all password fields
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value = '';
           document.getElementById('confirmPassword').value = '';
@@ -460,7 +450,6 @@
       }
     });
     
-    // Fetch user profile data from the server
     async function fetchUserProfile() {
       try {
         const response = await apiGet('/profile', true);

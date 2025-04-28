@@ -1,10 +1,8 @@
 const express = require('express');
 const app = express();
 
-// Import routes
 const authRoutes = require('./auth.js');
 
-// Print all routes
 console.log('Listing all registered routes in auth.js:');
 authRoutes.stack.forEach(route => {
   if (route.route) {

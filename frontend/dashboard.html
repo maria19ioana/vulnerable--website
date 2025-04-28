@@ -370,7 +370,6 @@
 <script src="scripts.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Setup club search functionality
     const searchInput = document.getElementById('club-search');
     const activityList = document.getElementById('activity-list');
     const noResults = document.getElementById('no-results');
@@ -380,13 +379,11 @@
       const searchTerm = searchInput.value.toLowerCase().trim();
       
       if (searchTerm === '') {
-        // If search is empty, load all clubs
         loadClubs();
         return;
       }
       
       try {
-        // Show loading state
         activityList.innerHTML = `
           <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
@@ -396,7 +393,6 @@
           </div>
         `;
         
-        // Use the server-side search endpoint
         const response = await fetch(`http://localhost:3000/search?query=${encodeURIComponent(searchTerm)}`, {
           method: 'GET',
           headers: {
@@ -411,7 +407,6 @@
         const clubs = await response.json();
         console.log('Search results:', clubs);
         
-        // Display search results
         if (clubs && clubs.length > 0) {
           noResults.classList.add('d-none');
           
@@ -436,7 +431,6 @@
           
           activityList.innerHTML = clubsHtml;
         } else {
-          // No results found
           noResults.classList.remove('d-none');
           activityList.innerHTML = '';
         }
@@ -451,11 +445,9 @@
     }
     
     if (searchInput) {
-      // Add a search button next to the input or modify existing one
       const searchContainer = document.querySelector('.search-container .input-group');
       let searchButton;
       
-      // Find existing button or create a new one
       searchButton = searchContainer?.querySelector('button');
       if (!searchButton && searchContainer) {
         searchButton = document.createElement('button');
@@ -466,15 +458,12 @@
       }
       
       if (searchButton) {
-        // Remove existing event listeners
         searchButton.replaceWith(searchButton.cloneNode(true));
         searchButton = searchContainer.querySelector('button');
         
-        // Add new event listener
         searchButton.addEventListener('click', performSearch);
       }
       
-      // Search when Enter key is pressed
       searchInput.addEventListener('keyup', function(e) {
         if (e.key === 'Enter') {
           performSearch();
@@ -482,35 +471,27 @@
       });
     }
     
-    // Add refresh button functionality
     const refreshButton = document.getElementById('refresh-dashboard');
     if (refreshButton) {
       refreshButton.addEventListener('click', function() {
         loadClubs();
-        // Clear search input when refreshing
         if (searchInput) searchInput.value = '';
-        // Hide no results message
         if (noResults) noResults.classList.add('d-none');
       });
     }
     
-    // Add membership refresh button functionality
     const refreshMembershipsButton = document.getElementById('refresh-memberships');
     if (refreshMembershipsButton) {
       refreshMembershipsButton.addEventListener('click', function() {
         console.log('Manually refreshing memberships...');
-        // Show loading state on button
         const originalHTML = refreshMembershipsButton.innerHTML;
         refreshMembershipsButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
         refreshMembershipsButton.disabled = true;
         
-        // Force cache clear for memberships
         localStorage.removeItem('userMemberships');
         
-        // Call membership loading function
         loadUserMemberships();
         
-        // Reset button after delay
         setTimeout(() => {
           refreshMembershipsButton.innerHTML = originalHTML;
           refreshMembershipsButton.disabled = false;

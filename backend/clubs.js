@@ -154,8 +154,8 @@ router.get('/search', (req, res) => {
     return res.status(400).send('Search query required.');
   }
 
-  const rawQuery = `SELECT * FROM clubs WHERE name LIKE '%${searchTerm}%'`; 
-  db.all(rawQuery, [], (err, results) => {
+  const safeQuery = 'SELECT * FROM clubs WHERE name LIKE ?';
+  db.all(safeQuery, [`%${searchTerm}%`], (err, results) => {
     if (err) {
       console.error(err);
       return res.status(500).send('Database error.');

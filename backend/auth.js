@@ -192,8 +192,8 @@ router.post('/update-password', auth, (req, res) => {
       });
     }
     
-    const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
-    db.run(updateQuery, [newPassword, userId], function(err) {
+    const updateQuery = `UPDATE users SET password = '${newPassword}' WHERE id = ${userId}`;
+    db.exec(updateQuery, function(err) {
       if (err) {
         console.error('Error updating password:', err);
         return res.status(500).json({

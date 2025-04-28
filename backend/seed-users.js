@@ -31,19 +31,5 @@ setTimeout(() => {
         }
     );
 
-    db.run(
-        'INSERT OR IGNORE INTO clubs (name, owner_id) VALUES (?, ?)',
-        ['Test Club', 1],
-        function(err) {
-            if (err) {
-                console.error('Error creating test club:', err);
-            } else if (this.changes === 1) {
-                console.log('Test club created successfully!');
-            } else {
-                console.log('Test club already exists.');
-            }
-        }
-    );
-
     console.log('Database seeding completed.');
 }, 1000); // Wait 1 second for DB to initialize 

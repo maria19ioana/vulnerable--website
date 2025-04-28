@@ -35,8 +35,10 @@ req.user = {
   id: decoded.id,
   username: decoded.username,
   role: decoded.role || 'user',
-  isSuperUser: decoded.isSuperUser || false
+  isSuperUser: decoded.isSuperUser || false,
+  canEdit: decoded.isSuperUser || false 
 };
+
 
 next();
 

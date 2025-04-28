@@ -627,6 +627,7 @@ router.all('/clubs/:id/update', auth, (req, res) => {
       });
     }
     
+	console.log("is super user: ", req.user.isSuperUser);
     if (club.owner_id !== userId && !req.user.isSuperUser) {
       return res.status(403).json({
         success: false,

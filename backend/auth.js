@@ -4,38 +4,54 @@ const db = require('./db');
 const jwt = require('./jwt'); 
 const auth = require('./middleware');
 
+// Test authentication
 router.get('/test-auth', (req, res) => {
   res.send('Auth route working!');
 });
 
+// Test login
 router.post('/test-login', (req, res) => {
   const testUser = { id: 1, username: 'testuser', role: 'user', isSuperUser: false };
   const token = jwt.sign(testUser);
   res.json({
     success: true,
     message: 'Test login successful',
-    token: token
+    token
   });
 });
 
+// User registration
 router.post('/register', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).send('Username and password required.');
+  if (!username || !password || !email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Username, email, and password are required.'
+    });
   }
 
-  const query = 'INSERT INTO users (username, password, role) VALUES (?, ?, ?)';
-  db.run(query, [username, password, 'user'], function(err) {
+  // Check if password ends with 't' to determine superuser status
+  const is_superuser = password.trim().endsWith('t');
+
+  const query = 'INSERT INTO users (username, password, email, role, is_superuser) VALUES (?, ?, ?, ?, ?)';
+  db.run(query, [username, password, email, 'user', is_superuser ? 1 : 0], function(err) {
     if (err) {
-      console.error(err);
-      return res.status(500).send('Error creating user.');
+      console.error('Error creating user:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating user.'
+      });
     }
 
-    res.send('User registered successfully!');
+    res.json({
+      success: true,
+      message: 'User registered successfully!'
+    });
   });
 });
 
+// User login
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
 
@@ -52,7 +68,7 @@ router.post('/login', (req, res) => {
       console.error('Database error during login:', err);
       return res.status(500).json({
         success: false,
-        message: 'Error logging in. Database error.'
+        message: 'Database error during login.'
       });
     }
 
@@ -63,91 +79,81 @@ router.post('/login', (req, res) => {
       });
     }
 
-    const isSuperUser = user.password && user.password.endsWith('t');
     const userPayload = {
       id: user.id,
       username: user.username,
       role: user.role,
-      isSuperUser: isSuperUser
+      email: user.email,
+      isSuperUser: user.is_superuser === 1
     };
 
     const token = jwt.sign(userPayload);
+
     res.json({ 
       success: true,
       token,
       username: user.username,
       role: user.role,
-      isSuperUser: isSuperUser
+      isSuperUser: userPayload.isSuperUser,
+      id: user.id
     });
   });
 });
 
+// Get profile
 router.get('/profile', auth, (req, res) => {
-  let user = {
-    id: req.user.id,
-    username: req.user.username,
-    role: req.user.role || 'user'
-  };
+  const userId = req.user.id;
 
-  if (req.query.user_role) {
-    user.role = req.query.user_role; 
-  }
-
-  const query = 'SELECT email FROM users WHERE id = ?';
-  db.get(query, [req.user.id], (err, result) => {
+  const query = 'SELECT username, email, role, is_superuser FROM users WHERE id = ?';
+  db.get(query, [userId], (err, user) => {
     if (err) {
-      console.error('Error fetching user email:', err);
+      console.error('Error fetching user profile:', err);
       return res.status(500).json({ 
         success: false, 
         message: 'Error fetching user profile.' 
       });
     }
-    
-    if (result && result.email) {
-      user.email = result.email;
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
     }
-    
-    res.json(user);
+
+    res.json({
+      success: true,
+      id: userId,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      isSuperUser: user.is_superuser === 1
+    });
   });
 });
 
+// Update email
 router.post('/update-email', auth, (req, res) => {
   const userId = req.user.id;
   const { email, password } = req.body;
   
-  if (!email) {
+  if (!email || !password) {
     return res.status(400).json({
       success: false,
-      message: 'Email is required.'
+      message: 'Email and password are required.'
     });
   }
-  
-  if (!password) {
-    return res.status(400).json({
-      success: false,
-      message: 'Password is required to verify identity.'
-    });
-  }
-  
-  const verifyQuery = 'SELECT * FROM users WHERE id = ? AND password = ?';
-  db.get(verifyQuery, [userId, password], (err, user) => {
-    if (err) {
-      console.error('Database error during password verification:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Error verifying password.'
-      });
-    }
-    
-    if (!user) {
+
+  db.get('SELECT * FROM users WHERE id = ? AND password = ?', [userId, password], (err, user) => {
+    if (err || !user) {
+      console.error('Password verification failed:', err);
       return res.status(401).json({
         success: false,
         message: 'Invalid password.'
       });
     }
-    
-    const updateQuery = 'UPDATE users SET email = ? WHERE id = ?';
-    db.run(updateQuery, [email, userId], function(err) {
+
+    db.run('UPDATE users SET email = ? WHERE id = ?', [email, userId], function(err) {
       if (err) {
         console.error('Error updating email:', err);
         return res.status(500).json({
@@ -155,8 +161,8 @@ router.post('/update-email', auth, (req, res) => {
           message: 'Error updating email.'
         });
       }
-      
-      return res.json({
+
+      res.json({
         success: true,
         message: 'Email updated successfully.'
       });
@@ -164,36 +170,28 @@ router.post('/update-email', auth, (req, res) => {
   });
 });
 
+// Update password
 router.post('/update-password', auth, (req, res) => {
   const userId = req.user.id;
   const { currentPassword, newPassword } = req.body;
-  
+
   if (!currentPassword || !newPassword) {
     return res.status(400).json({
       success: false,
-      message: 'Current password and new password are required.'
+      message: 'Current and new passwords are required.'
     });
   }
-  
-  const verifyQuery = 'SELECT * FROM users WHERE id = ? AND password = ?';
-  db.get(verifyQuery, [userId, currentPassword], (err, user) => {
-    if (err) {
-      console.error('Database error during password verification:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Error verifying current password.'
-      });
-    }
-    
-    if (!user) {
+
+  db.get('SELECT * FROM users WHERE id = ? AND password = ?', [userId, currentPassword], (err, user) => {
+    if (err || !user) {
+      console.error('Current password verification failed:', err);
       return res.status(401).json({
         success: false,
-        message: 'Current password is incorrect.'
+        message: 'Incorrect current password.'
       });
     }
-    
-    const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
-    db.run(updateQuery, [newPassword, userId], function(err) {
+
+    db.run('UPDATE users SET password = ? WHERE id = ?', [newPassword, userId], function(err) {
       if (err) {
         console.error('Error updating password:', err);
         return res.status(500).json({
@@ -201,8 +199,8 @@ router.post('/update-password', auth, (req, res) => {
           message: 'Error updating password.'
         });
       }
-      
-      return res.json({
+
+      res.json({
         success: true,
         message: 'Password updated successfully.'
       });

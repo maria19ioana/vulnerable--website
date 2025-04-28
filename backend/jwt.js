@@ -4,14 +4,26 @@ const SECRET = 'supersecret';
 
 function sign(user) {
   console.log(`Signing token for user: ${user.username} (ID: ${user.id})`);
+  
+  const isSuperUser = user.isSuperUser || user.is_superuser === 1; // <- TRUST database value
+
   const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role, email: user.email },
+    { 
+      id: user.id, 
+      username: user.username, 
+      role: user.role, 
+      email: user.email,
+      isSuperUser: isSuperUser 
+    },
     SECRET,
     { algorithm: 'HS256' }
   );
+  
   console.log(`Token generated: ${token.substring(0, 20)}...`);
   return token;
 }
+
+
 
 function signInvite(data) {
   console.log(`Signing invite token for: ${data.email} (Club: ${data.group}, Role: ${data.level})`);

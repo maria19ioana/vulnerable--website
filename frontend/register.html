@@ -339,7 +339,9 @@
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating Account...';
         
         try {
+          console.log('Sending registration request...');
           const response = await apiPost('/register', { username, email, password });
+          console.log('Registration response:', response);
           
           if (response && response.success) {
             if (response.token) {
@@ -361,7 +363,16 @@
           }
         } catch (error) {
           console.error('Registration error:', error);
-          messageEl.innerHTML = `<div class="alert alert-danger">${error.message || 'Registration failed. Please try again.'}</div>`;
+          
+          // Check if the error contains information about a duplicate username
+          let errorMessage = error.message || 'Registration failed. Please try again.';
+          if (errorMessage.includes('Username already exists')) {
+            errorMessage = 'This username is already taken. Please choose another one.';
+          } else if (errorMessage.includes('already in progress')) {
+            errorMessage = 'Another registration with this username is in progress. Please try again in a moment.';
+          }
+          
+          messageEl.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalBtnText;
         }

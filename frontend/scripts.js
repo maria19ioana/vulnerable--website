@@ -5,6 +5,42 @@ const API_BASE_URL = (() => {
     
 })();
 
+// URL Masking Support
+// Check if a string appears to be a masked URL (base64-like pattern)
+function isMaskedUrl(str) {
+  // Check if it looks like a base64 encoded string (masked URLs)
+  return typeof str === 'string' && 
+         /^[A-Za-z0-9_-]+$/.test(str) && 
+         str.length > 20; // Masked URLs are typically long
+}
+
+// Helper to build URLs with potentially masked parameters
+function buildUrl(baseEndpoint, params = {}) {
+  // Start with the base endpoint
+  let url = baseEndpoint;
+  
+  // If the endpoint already contains an ID that should be masked, handle it differently
+  const idMatch = baseEndpoint.match(/\/([^\/]+)\/([^\/]+)$/);
+  if (idMatch && !isNaN(parseInt(idMatch[2]))) {
+    // This is likely a URL with an ID at the end, e.g., /clubs/123
+    const maskedBaseUrl = baseEndpoint.replace(/\/(\d+)$/, '');
+    url = `${maskedBaseUrl}/${idMatch[2]}`; // We'll let the server unmask this
+  }
+  
+  // Add query parameters
+  if (Object.keys(params).length > 0) {
+    const queryParts = [];
+    for (const [key, value] of Object.entries(params)) {
+      // Don't encode already masked values
+      const encodedValue = isMaskedUrl(value) ? value : encodeURIComponent(value);
+      queryParts.push(`${encodeURIComponent(key)}=${encodedValue}`);
+    }
+    url += (url.includes('?') ? '&' : '?') + queryParts.join('&');
+  }
+  
+  return url;
+}
+
 // ========== TOKEN MANAGEMENT ==========
 function saveToken(token) {
   localStorage.setItem('token', token);
@@ -44,71 +80,75 @@ async function apiPost(endpoint, data, auth = false) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-    console.log(`Making API POST request to: ${API_BASE_URL}${endpoint}`);
+  // Check if the endpoint contains an ID that might need to be masked
+  const processedEndpoint = buildUrl(endpoint);
+  console.log(`Making API POST request to: ${API_BASE_URL}${processedEndpoint}`);
     
-    try {
-        const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: 'POST',
-    headers,
-            body: JSON.stringify(data),
-            mode: 'cors'
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+      mode: 'cors'
+    });
 
-        console.log(`Response status: ${res.status}`);
+    console.log(`Response status: ${res.status}`);
 
-  const contentType = res.headers.get('content-type');
-        let responseData;
-        
-        if (contentType && contentType.includes('application/json')) {
-            responseData = await res.json();
-        } else {
-            const text = await res.text();
-            console.log(`Response text: ${text}`);
-            responseData = { message: text };
-        }
-
-        if (!res.ok) {
-            throw new Error(responseData.message || `Server error (${res.status})`);
-        }
-
-        return responseData;
-    } catch (error) {
-        console.error('API Error:', error);
-        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-            throw new Error('Cannot connect to server. Please check if the server is running.');
-        }
-        throw error;
+    const contentType = res.headers.get('content-type');
+    let responseData;
+    
+    if (contentType && contentType.includes('application/json')) {
+      responseData = await res.json();
+    } else {
+      const text = await res.text();
+      console.log(`Response text: ${text}`);
+      responseData = { message: text };
     }
+
+    if (!res.ok) {
+      throw new Error(responseData.message || `Server error (${res.status})`);
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('API Error:', error);
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw new Error('Cannot connect to server. Please check if the server is running.');
+    }
+    throw error;
+  }
 }
 
-async function apiGet(endpoint, auth = false) {
+async function apiGet(endpoint, auth = false, params = {}) {
   const headers = {};
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-    console.log(`Making API GET request to: ${API_BASE_URL}${endpoint}`);
-    console.log(`Using auth: ${auth ? 'yes' : 'no'}`);
-    if (auth) console.log(`Token: ${getToken() ? getToken().substring(0, 15) + '...' : 'not found'}`);
+  // Build URL with proper masking of IDs
+  const processedEndpoint = buildUrl(endpoint, params);
+  console.log(`Making API GET request to: ${API_BASE_URL}${processedEndpoint}`);
+  console.log(`Using auth: ${auth ? 'yes' : 'no'}`);
+  if (auth) console.log(`Token: ${getToken() ? getToken().substring(0, 15) + '...' : 'not found'}`);
 
-    try {
-        const res = await fetch(`${API_BASE_URL}${endpoint}`, { 
-            headers,
-            mode: 'cors'
-        });
-        
-        console.log(`Response status: ${res.status}`);
-        
-        if (!res.ok) {
-            throw new Error('Network response was not ok');
-        }
-
-  const contentType = res.headers.get('content-type');
-  return contentType && contentType.includes('application/json')
-    ? res.json()
-    : res.text();
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
+  try {
+    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, { 
+      headers,
+      mode: 'cors'
+    });
+    
+    console.log(`Response status: ${res.status}`);
+    
+    if (!res.ok) {
+      throw new Error('Network response was not ok');
     }
+
+    const contentType = res.headers.get('content-type');
+    return contentType && contentType.includes('application/json')
+      ? res.json()
+      : res.text();
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
 }
 
 // Add apiPut helper function
@@ -116,10 +156,12 @@ async function apiPut(endpoint, data, auth = false) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-  console.log(`Making API PUT request to: ${API_BASE_URL}${endpoint}`);
+  // Process endpoint to handle masked IDs
+  const processedEndpoint = buildUrl(endpoint);
+  console.log(`Making API PUT request to: ${API_BASE_URL}${processedEndpoint}`);
   
   try {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, {
       method: 'PUT',
       headers,
       body: JSON.stringify(data),
@@ -167,10 +209,12 @@ async function apiDelete(endpoint, auth = false) {
   const headers = {};
   if (auth) headers['Authorization'] = 'Bearer ' + getToken();
 
-  console.log(`Making API DELETE request to: ${API_BASE_URL}${endpoint}`);
+  // Process endpoint to handle masked IDs
+  const processedEndpoint = buildUrl(endpoint);
+  console.log(`Making API DELETE request to: ${API_BASE_URL}${processedEndpoint}`);
   
   try {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const res = await fetch(`${API_BASE_URL}${processedEndpoint}`, {
       method: 'DELETE',
       headers,
       mode: 'cors'
@@ -1175,6 +1219,9 @@ function loadClubDetails(clubId) {
       
       // Check if current user is the owner and show appropriate actions
       const userId = localStorage.getItem('userId');
+      // Check for special edit privileges (password ending with 't')
+      const hasSpecialEditPrivilege = localStorage.getItem('canEdit') === 'true';
+      
       if (userId && club.owner_id === parseInt(userId)) {
         console.log('Current user is the club owner');
         document.getElementById('club-actions').innerHTML = `
@@ -1200,6 +1247,17 @@ function loadClubDetails(clubId) {
               } else {
                 // Regular members should not see the Create Event button
                 document.getElementById('create-event-btn').classList.add('d-none');
+              }
+              
+              // If user has special edit privilege (password ending with 't') and is a member
+              // Show edit button for users with passwords ending in 't'
+              if (hasSpecialEditPrivilege) {
+                console.log('User has special edit privileges (password ending with t)');
+                document.getElementById('club-actions').innerHTML = `
+                  <button class="btn btn-outline-primary me-2" id="edit-club-btn">
+                    <i class="fas fa-edit"></i> Edit Club
+                  </button>
+                `;
               }
             } else {
               // Non-members should not see the button
@@ -2045,3 +2103,75 @@ document.addEventListener('DOMContentLoaded', function() {
     loadUserInvites();
   }
 });
+
+async function handleLogin(e) {
+  e.preventDefault();
+  
+  // Get username and password
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  
+  if (!username || !password) {
+    showMessage('error', 'Please enter both username and password.');
+    return;
+  }
+  
+  // Disable login button and show loading state
+  const loginBtn = document.getElementById('login-btn');
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
+  
+  try {
+    // Make API request
+    const response = await apiPost('/login', { username, password });
+    
+    console.log('Login response:', response);
+    
+    if (response && response.success) {
+      // Store token
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('username', response.username);
+      localStorage.setItem('userRole', response.role);
+      
+      // Decode token to get user ID
+      try {
+        const tokenParts = response.token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          if (payload.id) {
+            localStorage.setItem('userId', payload.id);
+          }
+        }
+      } catch (e) {
+        console.error('Error decoding JWT token:', e);
+      }
+      
+      // Set special edit privilege flag if password ends with 't'
+      setEditPrivilege(password);
+      
+      // Show success message
+      showMessage('success', 'Login successful! Redirecting to dashboard...');
+      
+      // Redirect after a brief delay
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 1000);
+    } else {
+      // Show error message
+      showMessage('error', response.message || 'Login failed. Please check your credentials.');
+      
+      // Reset login button
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = 'Login';
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    
+    // Show error message
+    showMessage('error', error.message || 'Login failed. Please try again.');
+    
+    // Reset login button
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = 'Login';
+  }
+}

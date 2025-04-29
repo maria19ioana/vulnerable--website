@@ -111,15 +111,15 @@ router.post('/clubs', auth, (req, res) => {
 });
 
 router.post('/events/:id/edit', auth, (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, date } = req.body;
   const eventId = req.params.id;
 
-  if (!title || !description) {
-    return res.status(400).send('Title and description required.');
+  if (!title || !description || !date) {
+    return res.status(400).send('Title, description, and date required.');
   }
 
-  const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
-  db.run(query, [title, description, eventId], function(err) {
+  const query = 'UPDATE events SET title = ?, description = ?, date = ? WHERE id = ?';
+  db.run(query, [title, description, date, eventId], function(err) {
     if (err) return res.status(500).send('Error editing event.');
     if (this.changes === 0) return res.status(404).send('Event not found.');
     res.send('Event edited successfully.');
@@ -502,18 +502,18 @@ router.get('/events/:id', auth, (req, res) => {
 // Update event by ID
 router.put('/events/:id', auth, (req, res) => {
   const eventId = req.params.id;
-  const { title, description } = req.body;
+  const { title, description, date } = req.body;
   console.log(`Update request for event ID: ${eventId} by user ID: ${req.user.id}`);
 
-  if (!title || !description) {
+  if (!title || !description || !date) {
     return res.status(400).json({
       success: false,
-      message: 'Title and description are required.'
+      message: 'Title, description, and date are required.'
     });
   }
 
-  const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
-  db.run(query, [title, description, eventId], function(err) {
+  const query = 'UPDATE events SET title = ?, description = ?, date = ? WHERE id = ?';
+  db.run(query, [title, description, date, eventId], function(err) {
     if (err) {
       console.error('Error updating event:', err);
       return res.status(500).json({

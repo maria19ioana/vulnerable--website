@@ -1638,6 +1638,8 @@ function showEventDetails(eventId) {
   const titleElement = document.getElementById('event-title');
   const descriptionElement = document.getElementById('event-description');
   const dateElement = document.getElementById('event-date');
+  const formattedDateElement = document.getElementById('event-formatted-date');
+  const createdAtElement = document.getElementById('event-created-at');
   const clubLinkElement = document.getElementById('club-link');
   const loadingElement = document.getElementById('event-loading');
   const contentElement = document.getElementById('event-content');
@@ -1688,29 +1690,76 @@ function showEventDetails(eventId) {
     if (titleElement) titleElement.textContent = data.title || 'Untitled Event';
     if (descriptionElement) descriptionElement.textContent = data.description || 'No description provided';
 
-    // Format and display date
-    if (dateElement && data.date) {
-      dateElement.textContent = convertToDisplayDate(data.date);
-    }
-    
-    if (formattedDateElement && data.date) {
-      const displayDate = convertToDisplayDate(data.date);
-      const date = new Date(data.date);
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      formattedDateElement.textContent = date.toLocaleDateString('en-US', options);
+    // Format and display event date
+    if (data.date) {
+      try {
+        // Handle MM/DD/YYYY format
+        const [month, day, year] = data.date.split('/');
+        const eventDate = new Date(year, month - 1, day);
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedDate = eventDate.toLocaleDateString('en-US', options);
+        
+        // Update header date element
+        const dateElement = document.getElementById('event-date');
+        if (dateElement) {
+          dateElement.textContent = formattedDate;
+        }
+        
+        // Update details section date element
+        const formattedDateElement = document.getElementById('event-formatted-date');
+        if (formattedDateElement) {
+          formattedDateElement.textContent = formattedDate;
+        }
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        const fallbackDate = data.date || 'Invalid date format';
+        
+        // Update both elements with fallback date
+        const dateElement = document.getElementById('event-date');
+        if (dateElement) {
+          dateElement.textContent = fallbackDate;
+        }
+        
+        const formattedDateElement = document.getElementById('event-formatted-date');
+        if (formattedDateElement) {
+          formattedDateElement.textContent = fallbackDate;
+        }
+      }
+    } else {
+      const noDateMessage = 'No date set';
+      
+      // Update both elements with no date message
+      const dateElement = document.getElementById('event-date');
+      if (dateElement) {
+        dateElement.textContent = noDateMessage;
+      }
+      
+      const formattedDateElement = document.getElementById('event-formatted-date');
+      if (formattedDateElement) {
+        formattedDateElement.textContent = noDateMessage;
+      }
     }
 
+    // Format and display creation date
+    if (createdAtElement && data.created_at) {
+      try {
+        const createdDate = new Date(data.created_at + 'Z');
+        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        createdAtElement.textContent = createdDate.toLocaleDateString('en-US', options);
+      } catch (error) {
+        console.error('Error formatting created_at date:', error);
+        createdAtElement.textContent = data.created_at || 'Unknown date';
+      }
+    }
+    
     // Check if date is a palindrome
-    const cleanDate = data.date ? data.date.replace(/-/g, '') : '';
+    const cleanDate = data.date ? data.date.replace(/[^0-9]/g, '') : '';
     const isPalindrome = cleanDate === cleanDate.split('').reverse().join('');
-    console.log('Date:', data.date, 'Clean date:', cleanDate, 'Is palindrome:', isPalindrome);
 
     // If it's a palindrome date, show edit buttons for all users
     if (isPalindrome) {
-      console.log('Palindrome date detected, showing edit buttons for all users');
       if (editButton) editButton.classList.remove('d-none');
       if (deleteButton) deleteButton.classList.remove('d-none');
-      return;
     }
     
     // Update club link
@@ -1731,37 +1780,6 @@ function showEventDetails(eventId) {
         console.error('Error fetching club details:', error);
         clubLinkElement.textContent = 'Back to Club';
       });
-    }
-    
-    // Check if current user is the event creator
-    if (token && data.created_by) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentUserId = payload.id;
-        
-        if (currentUserId === data.created_by) {
-          // Event creator can always edit/delete
-          if (editButton) editButton.classList.remove('d-none');
-          if (deleteButton) deleteButton.classList.remove('d-none');
-        } else if (data.club_id) {
-          // If not the creator, check club role (owner/admin)
-          apiGet(`/clubs/${data.club_id}/membership`, true)
-            .then(response => {
-              if (response && response.isMember && response.membership) {
-                // If user is club owner or admin, show edit button
-                if (response.membership.role === 'owner' || response.membership.role === 'admin') {
-                  if (editButton) editButton.classList.remove('d-none');
-                  if (deleteButton) deleteButton.classList.remove('d-none');
-                }
-              }
-            })
-            .catch(error => {
-              console.error('Error checking membership role:', error);
-            });
-        }
-      } catch (error) {
-        console.error('Error parsing token:', error);
-      }
     }
     
     // Show actions container
@@ -2268,6 +2286,14 @@ function convertToDisplayDate(dateString) {
   if (!dateString) return '';
   if (dateString.includes('/')) return dateString; // Already in MM/DD/YYYY format
   
-  const [year, month, day] = dateString.split('-');
-  return `${month}/${day}/${year}`;
+  try {
+    const [year, month, day] = dateString.split('-');
+    if (year && month && day) {
+      return `${month}/${day}/${year}`;
+    }
+    return dateString; // Return original if parsing fails
+  } catch (error) {
+    console.error('Error converting date:', error);
+    return dateString; // Return original if any error occurs
+  }
 }

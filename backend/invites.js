@@ -13,7 +13,6 @@ router.post('/clubs/:id/invite', auth, (req, res) => {
     return res.status(400).send('Email is required.');
   }
 
-  // First get the club name for the email
   db.get('SELECT name FROM clubs WHERE id = ?', [clubId], async (err, club) => {
     if (err || !club) {
       console.error('Error fetching club:', err);
@@ -41,7 +40,6 @@ router.post('/clubs/:id/invite', auth, (req, res) => {
       const inviteId = this.lastID;
       const inviteLink = `http://localhost:3000/accept-invite?token=${token}`;
       
-      // Send invitation email
       try {
         await sendInviteEmail({
           email,

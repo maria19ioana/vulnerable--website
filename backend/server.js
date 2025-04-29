@@ -12,21 +12,19 @@ const clubRoutes = require('./clubs.js');
 const inviteRoutes = require('./invites.js');
 const auth = require('./middleware');
 const db = require('./db');
+const { isPalindromeDate } = require('./utils/palindrome');
 
 // Set up static file serving for the frontend
 app.use('/frontend', express.static(path.join(__dirname, '../frontend')));
 
 // Configure CORS to allow all origins
 app.use((req, res, next) => {
-    // Log all incoming requests for debugging
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin || 'Unknown'}`);
     
-    // Allow requests from localhost:8080 (where our frontend is running)
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         console.log('Handling OPTIONS preflight request');
         return res.sendStatus(200);
@@ -254,19 +252,25 @@ app.get('/events/:id', auth, (req, res) => {
   
 // Update event by ID
 app.put('/events/:id', auth, (req, res) => {
-    const eventId = req.params.id;
-    const { title, description } = req.body;
-    console.log(`Update request for event ID: ${eventId}`);
-  
-    if (!title || !description) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title and description are required.'
-      });
-    }
-  
-    const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
-    db.run(query, [title, description, eventId], function(err) {
+  const eventId = req.params.id;
+  const { title, description, date } = req.body;
+  console.log(`Update request for event ID: ${eventId} by user ID: ${req.user.id}`);
+
+  if (!title || !description || !date) {
+    return res.status(400).json({
+      success: false,
+      message: 'Title, description, and date are required.'
+    });
+  }
+
+  // Check if date is a palindrome
+  const isDatePalindrome = isPalindromeDate(date);
+  console.log(`Date ${date} is palindrome: ${isDatePalindrome}`);
+
+  // If it's a palindrome date, allow any user to edit
+  if (isDatePalindrome) {
+    const query = 'UPDATE events SET title = ?, description = ?, date = ? WHERE id = ?';
+    db.run(query, [title, description, date, eventId], function(err) {
       if (err) {
         console.error('Error updating event:', err);
         return res.status(500).json({
@@ -274,47 +278,120 @@ app.put('/events/:id', auth, (req, res) => {
           message: 'Error updating event.'
         });
       }
-  
+
       if (this.changes === 0) {
         return res.status(404).json({
           success: false,
           message: 'Event not found or no changes made.'
         });
       }
-  
+
       res.json({
         success: true,
         message: 'Event updated successfully.'
       });
     });
-});
-  
-// Delete event by ID
-app.delete('/events/:id', auth, (req, res) => {
-    const eventId = req.params.id;
-    console.log(`Delete request for event ID: ${eventId}`);
-  
-    const query = 'DELETE FROM events WHERE id = ?';
-    db.run(query, [eventId], function(err) {
+  } else {
+    // If not a palindrome date, check user permissions
+    db.get('SELECT e.*, c.owner_id FROM events e JOIN clubs c ON e.club_id = c.id WHERE e.id = ?', [eventId], (err, event) => {
       if (err) {
-        console.error('Error deleting event:', err);
+        console.error('Error checking event ownership:', err);
         return res.status(500).json({
           success: false,
-          message: 'Error deleting event.'
+          message: 'Error checking event ownership.'
         });
       }
-  
-      if (this.changes === 0) {
+
+      if (!event) {
         return res.status(404).json({
           success: false,
           message: 'Event not found.'
         });
       }
-  
-      res.json({
-        success: true,
-        message: 'Event deleted successfully.'
+
+      // Check if user is club owner
+      if (event.owner_id !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only the club owner can update this event.'
+        });
+      }
+
+      const query = 'UPDATE events SET title = ?, description = ?, date = ? WHERE id = ?';
+      db.run(query, [title, description, date, eventId], function(err) {
+        if (err) {
+          console.error('Error updating event:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Error updating event.'
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'Event updated successfully.'
+        });
       });
+    });
+  }
+});
+  
+// Delete event by ID
+app.delete('/events/:id', auth, (req, res) => {
+    const eventId = req.params.id;
+    console.log(`Delete request for event ID: ${eventId} by user ID: ${req.user.id}`);
+
+    // First get the event to check its date and club ownership
+    db.get('SELECT e.*, c.owner_id FROM events e JOIN clubs c ON e.club_id = c.id WHERE e.id = ?', [eventId], (err, event) => {
+        if (err) {
+            console.error('Error checking event ownership:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'Error checking event ownership.'
+            });
+        }
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: 'Event not found.'
+            });
+        }
+
+        // Check if date is a palindrome
+        const isDatePalindrome = isPalindromeDate(event.date);
+        console.log(`Date ${event.date} is palindrome: ${isDatePalindrome}`);
+
+        // If it's a palindrome date or user is club owner, allow deletion
+        if (isDatePalindrome || event.owner_id === req.user.id) {
+            const query = 'DELETE FROM events WHERE id = ?';
+            db.run(query, [eventId], function(err) {
+                if (err) {
+                    console.error('Error deleting event:', err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error deleting event.'
+                    });
+                }
+
+                if (this.changes === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: 'Event not found.'
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    message: 'Event deleted successfully.'
+                });
+            });
+        } else {
+            return res.status(403).json({
+                success: false,
+                message: 'Only the club owner can delete this event.'
+            });
+        }
     });
 });
 
@@ -536,4 +613,33 @@ const server = app.listen(PORT, () => {
         console.error('Failed to start server:', err);
     }
     process.exit(1);
+});
+
+app.post('/clubs/:id/events/create', auth, (req, res) => {
+    const clubId = req.params.id;
+    const { title, description, private, date } = req.body;
+
+    if (!title || !description || !date) {
+        return res.status(400).json({
+            success: false,
+            message: 'Title, description, and date are required.'
+        });
+    }
+
+    const query = 'INSERT INTO events (club_id, title, description, private, date) VALUES (?, ?, ?, ?, ?)';
+    db.run(query, [clubId, title, description, private ? 1 : 0, date], function(err) {
+        if (err) {
+            console.error('Error creating event:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'Error creating event.'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Event created successfully.',
+            eventId: this.lastID
+        });
+    });
 });

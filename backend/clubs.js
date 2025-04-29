@@ -22,12 +22,10 @@ router.get('/dashboard', auth, (req, res) => {
 
     console.log(`Found ${clubs.length} clubs for user ID: ${userId}`);
     
-    // Get upcoming events count for each club (simplified version)
     const eventsQuery = 'SELECT COUNT(*) as eventCount, club_id FROM events GROUP BY club_id';
     db.all(eventsQuery, [], (eventsErr, eventCounts) => {
       if (eventsErr) {
         console.error('Error fetching event counts:', eventsErr);
-        // Continue with clubs only, don't fail the whole request
         return res.json({
           success: true,
           clubs: clubs,
@@ -36,7 +34,6 @@ router.get('/dashboard', auth, (req, res) => {
         });
       }
       
-      // Create event count map
       const eventCountMap = {};
       let totalEvents = 0;
       
@@ -45,7 +42,6 @@ router.get('/dashboard', auth, (req, res) => {
         totalEvents += count.eventCount;
       });
       
-      // Add event count to each club
       clubs.forEach(club => {
         club.eventCount = eventCountMap[club.id] || 0;
       });
@@ -94,21 +90,17 @@ router.post('/clubs', auth, (req, res) => {
     }
     
     const clubId = this.lastID;
-    
-    // Add owner as a member with owner role
     const memberQuery = `INSERT INTO club_members (club_id, user_id, join_date, role) 
                          VALUES (?, ?, datetime('now'), 'owner')`;
     
     db.run(memberQuery, [clubId, ownerId], function(err) {
       if (err) {
         console.error('Error adding owner as club member:', err);
-        // Don't fail the whole operation if this fails
         console.log(`Club created with ID: ${clubId}, but owner not added as member`);
       } else {
         console.log(`Owner added as member for club ID: ${clubId}`);
       }
       
-      // Return success regardless of member addition
       res.status(201).json({
         success: true,
         message: 'Club created successfully',
@@ -126,7 +118,6 @@ router.post('/events/:id/edit', auth, (req, res) => {
     return res.status(400).send('Title and description required.');
   }
 
-  // No check if the user owns the event — vulnerable by design
   const query = 'UPDATE events SET title = ?, description = ? WHERE id = ?';
   db.run(query, [title, description, eventId], function(err) {
     if (err) return res.status(500).send('Error editing event.');
@@ -173,20 +164,30 @@ router.get('/search', (req, res) => {
 
 router.post('/clubs/:id/events/create', auth, (req, res) => {
   const clubId = req.params.id;
-  const { title, description, private } = req.body;
+  const { title, description, private, date } = req.body;
 
-  if (!title || !description) {
-    return res.status(400).send('Title and description required.');
+  if (!title || !description || !date) {
+    return res.status(400).json({
+      success: false,
+      message: 'Title, description, and date are required.'
+    });
   }
 
-  const query = 'INSERT INTO events (club_id, title, description, private) VALUES (?, ?, ?, ?)';
-  db.run(query, [clubId, title, description, private ? 1 : 0], function(err) {
+  const query = 'INSERT INTO events (club_id, title, description, private, date) VALUES (?, ?, ?, ?, ?)';
+  db.run(query, [clubId, title, description, private ? 1 : 0, date], function(err) {
     if (err) {
-      console.error(err);
-      return res.status(500).send('Error creating event.');
+      console.error('Error creating event:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating event.'
+      });
     }
 
-    res.send('Event created successfully.');
+    res.json({
+      success: true,
+      message: 'Event created successfully.',
+      eventId: this.lastID
+    });
   });
 });
 

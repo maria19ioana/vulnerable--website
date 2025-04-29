@@ -319,9 +319,8 @@
     // Set club ID in the hidden input
     document.getElementById('clubId').value = clubId;
     
-    // Update the back to club link
-    document.getElementById('club-link').href = `club.html?id=${clubId}`;
-    
+	document.getElementById('club-link').href = `club.html?id=${btoa(clubId.toString())}`;
+
     // Load club info
     loadClubInfo(clubId);
     

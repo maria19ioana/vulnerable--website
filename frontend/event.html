@@ -371,7 +371,7 @@
           
           <div class="event-header-content">
             <h1 id="event-title" class="event-title">dd</h1>
-            <p class="event-date">Posted on <span id="event-date">4/26/2025</span></p>
+            <p class="event-date">Posted on <span id="event-created-at">Loading...</span></p>
             <div id="event-privacy-badge" class="event-badge">
               <i class="fas fa-lock-open"></i> Public
             </div>
@@ -420,28 +420,32 @@
   </footer>
 
   <!-- Edit Event Modal -->
-  <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
+  <div class="modal fade" id="editEventModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="editEventModalLabel">Edit Event</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title">Edit Event</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <form id="edit-event-form">
+          <form id="editEventForm">
             <div class="mb-3">
-              <label for="edit-event-title" class="form-label">Event Title</label>
-              <input type="text" class="form-control" id="edit-event-title" required>
+              <label for="editEventTitle" class="form-label">Event Title</label>
+              <input type="text" class="form-control" id="editEventTitle" required>
             </div>
             <div class="mb-3">
-              <label for="edit-event-description" class="form-label">Description</label>
-              <textarea class="form-control" id="edit-event-description" rows="4" required></textarea>
+              <label for="editEventDescription" class="form-label">Description</label>
+              <textarea class="form-control" id="editEventDescription" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="editEventDate" class="form-label">Date</label>
+              <input type="date" class="form-control" id="editEventDate" required>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="save-event-btn">Save Changes</button>
+          <button type="button" class="btn btn-primary" onclick="saveEventChanges()">Save Changes</button>
         </div>
       </div>
     </div>
@@ -469,7 +473,15 @@
 
       // Get event ID from URL
       const urlParams = new URLSearchParams(window.location.search);
-      const eventId = urlParams.get('id');
+      let eventId = urlParams.get('id');
+      if (eventId) {
+        try {
+          eventId = atob(eventId);
+        } catch (error) {
+          console.error('Error decoding event ID:', error);
+          eventId = null;
+        }
+      }
       
       if (!eventId) {
         document.getElementById('event-loading').classList.add('d-none');
@@ -482,106 +494,62 @@
       showEventDetails(eventId);
 
       // Setup edit event functionality
-      const editEventForm = document.getElementById('edit-event-form');
-      const saveEventBtn = document.getElementById('save-event-btn');
-      const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
-
-      // Populate edit form when modal is shown
-      document.getElementById('editEventModal').addEventListener('show.bs.modal', function() {
-        document.getElementById('edit-event-title').value = document.getElementById('event-title').textContent;
-        document.getElementById('edit-event-description').value = document.getElementById('event-description').textContent;
-      });
-
-      // Handle edit form submission
-      saveEventBtn.addEventListener('click', function() {
-        const title = document.getElementById('edit-event-title').value.trim();
-        const description = document.getElementById('edit-event-description').value.trim();
-        
-        if (!title || !description) {
-          showToast('Please fill in all fields', 'danger');
-          return;
-        }
-        
-        const token = localStorage.getItem('token');
-        
-        // Update the event
-        saveEventBtn.disabled = true;
-        saveEventBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-        
-        fetch(`${API_BASE_URL}/events/${eventId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ title, description })
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+      const editEventModal = document.getElementById('editEventModal');
+      if (editEventModal) {
+        editEventModal.addEventListener('show.bs.modal', function() {
+          const titleInput = document.getElementById('editEventTitle');
+          const descInput = document.getElementById('editEventDescription');
+          if (titleInput && descInput) {
+            titleInput.value = document.getElementById('event-title').textContent;
+            descInput.value = document.getElementById('event-description').textContent;
           }
-          return response.json();
-        })
-        .then(data => {
-          // Update the UI
-          document.getElementById('event-title').textContent = title;
-          document.getElementById('event-description').textContent = description;
-          
-          // Close the modal and show success message
-          editEventModal.hide();
-          showToast('Event updated successfully', 'success');
-        })
-        .catch(error => {
-          console.error('Error updating event:', error);
-          showToast(`Failed to update event: ${error.message}`, 'danger');
-        })
-        .finally(() => {
-          saveEventBtn.disabled = false;
-          saveEventBtn.textContent = 'Save Changes';
         });
-      });
+      }
 
       // Handle delete button click
-      document.getElementById('delete-event-btn').addEventListener('click', function() {
-        if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-          const token = localStorage.getItem('token');
-          const deleteBtn = this;
-          
-          // Show loading state
-          deleteBtn.disabled = true;
-          deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
-          
-          // Get club ID from the URL in the breadcrumb
-          const clubLinkElement = document.getElementById('club-link');
-          const clubId = clubLinkElement.href.split('id=')[1];
-          
-          fetch(`${API_BASE_URL}/events/${eventId}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(data => {
-            showToast('Event deleted successfully', 'success');
-            // Redirect to club page after successful deletion
-            setTimeout(() => {
-              window.location.href = `club.html?id=${clubId}`;
-            }, 1500);
-          })
-          .catch(error => {
-            console.error('Error deleting event:', error);
-            showToast(`Failed to delete event: ${error.message}`, 'danger');
-            deleteBtn.disabled = false;
-            deleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Delete Event';
-          });
-        }
-      });
+      const deleteButton = document.getElementById('delete-event-btn');
+      if (deleteButton) {
+        deleteButton.addEventListener('click', function() {
+          if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+            const token = localStorage.getItem('token');
+            const deleteBtn = this;
+            
+            // Show loading state
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+            
+            // Get club ID from the URL in the breadcrumb
+            const clubLinkElement = document.getElementById('club-link');
+            const clubId = clubLinkElement.href.split('id=')[1];
+            
+            fetch(`${API_BASE_URL}/events/${eventId}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.text();
+            })
+            .then(() => {
+              showToast('Event deleted successfully', 'success');
+              // Redirect to club page after successful deletion
+              setTimeout(() => {
+                window.location.href = `club.html?id=${clubId}`;
+              }, 1500);
+            })
+            .catch(error => {
+              console.error('Error deleting event:', error);
+              showToast(`Failed to delete event: ${error.message}`, 'danger');
+              deleteBtn.disabled = false;
+              deleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Delete Event';
+            });
+          }
+        });
+      }
     });
 
     // Function to show event details
@@ -632,13 +600,38 @@
         if (titleElement) titleElement.textContent = data.title || 'Untitled Event';
         if (descriptionElement) descriptionElement.textContent = data.description || 'No description provided';
 
-        // Format and display date
-        const eventDate = data.created_at ? new Date(data.created_at) : new Date();
-        if (dateElement) dateElement.textContent = eventDate.toLocaleDateString();
-        
-        if (formattedDateElement) {
-          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-          formattedDateElement.textContent = eventDate.toLocaleDateString('en-US', options);
+        // Show created_at date for when event was posted
+        const createdAtElement = document.getElementById('event-created-at');
+        if (createdAtElement) {
+            if (data.created_at) {
+                try {
+                    // SQLite timestamps are in UTC format
+                    const createdDate = new Date(data.created_at + 'Z');
+                    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                    createdAtElement.textContent = createdDate.toLocaleDateString('en-US', options);
+                } catch (error) {
+                    console.error('Error formatting created_at date:', error);
+                    createdAtElement.textContent = data.created_at;
+                }
+            } else {
+                createdAtElement.textContent = 'Unknown date';
+            }
+        }
+
+        // Format and display event date
+        if (formattedDateElement && data.date) {
+          try {
+            // Handle MM/DD/YYYY format
+            const [month, day, year] = data.date.split('/');
+            const eventDate = new Date(year, month - 1, day);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            formattedDateElement.textContent = eventDate.toLocaleDateString('en-US', options);
+          } catch (error) {
+            console.error('Error formatting date:', error);
+            formattedDateElement.textContent = data.date || 'Invalid date format';
+          }
+        } else if (formattedDateElement) {
+          formattedDateElement.textContent = 'No date set';
         }
         
         // Set privacy badge
@@ -652,11 +645,11 @@
         
         // Update club links
         if (clubLinkElement && data.club_id) {
-          clubLinkElement.href = `club.html?id=${data.club_id}`;
+          clubLinkElement.href = `club.html?id=${btoa(data.club_id.toString())}`;
         }
         
         if (eventClubLinkElement && data.club_id) {
-          eventClubLinkElement.href = `club.html?id=${data.club_id}`;
+          eventClubLinkElement.href = `club.html?id=${btoa(data.club_id.toString())}`;
           
           // Fetch club name
           fetch(`${API_BASE_URL}/clubs/${data.club_id}`, {
@@ -671,71 +664,56 @@
             if (clubLinkElement) clubLinkElement.textContent = clubData.name;
             
             // Get current user ID from token
-            const currentUserId = localStorage.getItem('userId');
-            console.log('Current user ID:', currentUserId);
-            console.log('Event creator ID:', data.created_by);
-            console.log('Club owner ID:', clubData.owner_id);
-            
-            // Check if current user is the event creator
-            if (data.created_by && currentUserId == data.created_by) {
-              console.log('User is the event creator, showing edit buttons');
-              // Event creator can always edit/delete
-              if (editButton) editButton.classList.remove('d-none');
-              if (deleteButton) deleteButton.classList.remove('d-none');
-              return;
-            }
-            
-            // Check if current user is the club owner
-            if (clubData.owner_id && currentUserId == clubData.owner_id) {
-              console.log('User is the club owner, showing edit buttons');
-              // Club owner can edit/delete events
-              if (editButton) editButton.classList.remove('d-none');
-              if (deleteButton) deleteButton.classList.remove('d-none');
-              return;
-            }
-            
-            // If not creator or owner, check if user is an admin
-            console.log('Checking if user is admin for club:', data.club_id);
-            fetch(`${API_BASE_URL}/clubs/${data.club_id}/membership`, {
-              headers: {
-                'Authorization': token ? `Bearer ${token}` : ''
-              }
-            })
-            .then(response => response.json())
-            .then(memberData => {
-              console.log('Membership data:', memberData);
-              
-              if (memberData && memberData.isMember && memberData.membership) {
-                console.log('User role in club:', memberData.membership.role);
-                
-                // Show edit/delete buttons only for admins
-                if (memberData.membership.role === 'admin') {
-                  console.log('User is an admin, showing edit buttons');
-                  if (editButton) editButton.classList.remove('d-none');
-                  if (deleteButton) deleteButton.classList.remove('d-none');
-                } else {
-                  console.log('User is a regular member, hiding edit buttons');
-                  // Keep buttons hidden for regular members
-                  if (editButton) editButton.classList.add('d-none');
-                  if (deleteButton) deleteButton.classList.add('d-none');
+            let currentUserId = null;
+            try {
+              const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+              currentUserId = tokenPayload.id;
+              console.log('Current user ID:', currentUserId);
+              console.log('Event creator ID:', data.created_by);
+              console.log('Club owner ID:', clubData.owner_id);
+
+              // Check if the event date is a palindrome
+              let isPalindrome = false;
+              if (data.date && typeof data.date === 'string') {
+                try {
+                  // Remove all non-numeric characters and check if the date string is a palindrome
+                  const cleanDate = data.date.replace(/[^0-9]/g, '');
+                  isPalindrome = cleanDate === cleanDate.split('').reverse().join('');
+                  console.log('Event date:', data.date, 'Clean date:', cleanDate, 'Is palindrome:', isPalindrome);
+                } catch (error) {
+                  console.error('Error checking palindrome date:', error);
                 }
               } else {
-                console.log('User is not a member of this club');
-                // Not a member, keep buttons hidden
+                console.log('No date field or invalid date format:', data.date);
+              }
+
+              // Show edit/delete buttons for club owner or if date is palindrome
+              if (currentUserId == clubData.owner_id) {
+                console.log('User is the club owner, showing edit buttons');
+                if (editButton) editButton.classList.remove('d-none');
+                if (deleteButton) deleteButton.classList.remove('d-none');
+              } else if (isPalindrome) {
+                console.log('Date is palindrome, showing edit buttons for everyone');
+                if (editButton) editButton.classList.remove('d-none');
+                if (deleteButton) deleteButton.classList.remove('d-none');
+              } else {
+                console.log('User is not the club owner and date is not palindrome, hiding edit buttons');
                 if (editButton) editButton.classList.add('d-none');
                 if (deleteButton) deleteButton.classList.add('d-none');
               }
-            })
-            .catch(error => {
-              console.error('Error checking membership role:', error);
+            } catch (error) {
+              console.error('Error extracting user ID from token:', error);
               // On error, keep buttons hidden
               if (editButton) editButton.classList.add('d-none');
               if (deleteButton) deleteButton.classList.add('d-none');
-            });
+            }
           })
           .catch(error => {
             console.error('Error fetching club details:', error);
             eventClubLinkElement.textContent = 'Club';
+            // On error, keep buttons hidden
+            if (editButton) editButton.classList.add('d-none');
+            if (deleteButton) deleteButton.classList.add('d-none');
           });
         }
       })
@@ -776,6 +754,64 @@
       toastElement.addEventListener('hidden.bs.toast', function () {
         toastElement.remove();
       });
+    }
+
+    // Helper functions for error and success messages
+    function showError(message) {
+      showToast(message, 'danger');
+    }
+
+    function showSuccess(message) {
+      showToast(message, 'success');
+    }
+
+    // Function to save event changes
+    async function saveEventChanges() {
+      const title = document.getElementById('editEventTitle').value.trim();
+      const description = document.getElementById('editEventDescription').value.trim();
+      const rawDate = document.getElementById('editEventDate').value; // YYYY-MM-DD format
+      
+      if (!title || !description || !rawDate) {
+        showError('Please fill in all required fields');
+        return;
+      }
+      
+      try {
+        // Convert YYYY-MM-DD to MM/DD/YYYY format
+        const [year, month, day] = rawDate.split('-');
+        const date = `${month}/${day}/${year}`;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = atob(urlParams.get('id'));
+        
+        const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ title, description, date })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Error updating event');
+        }
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editEventModal'));
+        modal.hide();
+        
+        // Refresh event details
+        showEventDetails(eventId);
+        
+        // Show success message
+        showSuccess('Event updated successfully');
+      } catch (error) {
+        console.error('Error updating event:', error);
+        showError(error.message || 'Error updating event');
+      }
     }
   </script>
 </body>

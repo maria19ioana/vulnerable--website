@@ -220,7 +220,6 @@
   </style>
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-light">
     <div class="container">
       <a class="navbar-brand" href="index.html">
@@ -233,24 +232,21 @@
     </div>
   </nav>
 
-  <!-- Main Container -->
   <div class="main-container">
     <div class="content-wrapper">
-      <!-- Register Sidebar -->
       <div class="register-sidebar">
         <div class="decorative-circles circle-1"></div>
         <div class="decorative-circles circle-2"></div>
         
         <div class="register-sidebar-content">
           <h1 class="register-title">Join ClubConnect</h1>
-          <p class="register-description">Create your account to start connecting with clubs, organizing events, and building your campus network.</p>
+          <p class="register-description">Create your account to start connecting with clubs and events on campus.</p>
         </div>
       </div>
 
-      <!-- Register Form -->
       <div class="register-form-container">
         <div class="register-form-header">
-          <h2>Create Account</h2>
+          <h2>Create Your Account</h2>
           <p>Fill in your details to get started</p>
         </div>
         
@@ -289,19 +285,18 @@
             </div>
           </div>
           
-          <button type="submit" class="btn btn-primary w-100">
+          <button type="submit" class="btn btn-primary w-100" id="register-btn">
             <i class="fas fa-user-plus me-2"></i>Create Account
           </button>
           
           <div class="auth-links">
-            <p>Already have an account? <a href="login.html">Log in</a></p>
+            <p>Already have an account? <a href="login.html">Login</a></p>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Footer -->
   <footer>
     <div class="container">
       <p class="mb-0">&copy; 2025 <strong>ClubConnect</strong>. All rights reserved.</p>
@@ -314,58 +309,12 @@
     document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('registerForm');
       const messageEl = document.getElementById('register-message');
-
-      form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const username = document.getElementById('username').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        
-        if (!username || !email || !password || !confirmPassword) {
-          messageEl.innerHTML = '<div class="alert alert-danger">Please fill in all fields</div>';
-          return;
-        }
-        
-        if (password !== confirmPassword) {
-          messageEl.innerHTML = '<div class="alert alert-danger">Passwords do not match</div>';
-          return;
-        }
-        
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating Account...';
-        
-        try {
-          const response = await apiPost('/register', { username, email, password });
-          
-          if (response && response.success) {
-            if (response.token) {
-                saveToken(response.token);
-                messageEl.innerHTML = `<div class="alert alert-success">Registration successful! Redirecting to dashboard...</div>`;
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 2000);
-            } else {
-                messageEl.innerHTML = `<div class="alert alert-success">Registration successful! Redirecting to login...</div>`;
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
-            }
-          } else {
-            messageEl.innerHTML = `<div class="alert alert-danger">${response.message || 'Registration failed. Please try again.'}</div>`;
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-          }
-        } catch (error) {
-          console.error('Registration error:', error);
-          messageEl.innerHTML = `<div class="alert alert-danger">${error.message || 'Registration failed. Please try again.'}</div>`;
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalBtnText;
-        }
-      });
+      
+      form.addEventListener('submit', handleRegister);
+      
+      function showMessage(type, message) {
+        messageEl.innerHTML = `<div class="alert alert-${type === 'error' ? 'danger' : 'success'}">${message}</div>`;
+      }
     });
   </script>
 </body>

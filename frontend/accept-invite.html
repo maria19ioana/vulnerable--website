@@ -313,7 +313,7 @@
       
       // Set the go-to-club button URL
       if (goToClubButton) {
-        goToClubButton.href = `club.html?id=${data.clubId}`;
+        goToClubButton.href = `club.html?id=${btoa(data.clubId.toString())}`;
       }
       
       // Check if user is logged in
@@ -389,7 +389,7 @@
             // If auto-accepted, redirect to club page after a short delay
             if (autoAccept === 'true') {
               setTimeout(() => {
-                window.location.href = `club.html?id=${data.clubId}`;
+                window.location.href = `club.html?id=${btoa(data.clubId.toString())}`;
               }, 1500);
             }
           } catch (error) {

@@ -427,7 +427,7 @@
                     <small>You are the owner of this club</small>
                     ${club.eventCount ? `<small class="d-block text-muted">${club.eventCount} event(s)</small>` : ''}
                 </div>
-                <a href="club.html?id=${club.id}" class="btn btn-sm btn-outline-primary">View</a>
+                <a href="club.html?id=${btoa(club.id.toString())}" class="btn btn-sm btn-outline-primary">View</a>
             </div>
             `;
           });

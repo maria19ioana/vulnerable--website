@@ -1,8 +1,6 @@
 // API Configuration
 const API_BASE_URL = (() => {
-   
-    return 'http://localhost:3000';  // Development
-    
+    return 'http://localhost:3000';
 })();
 
 // ========== TOKEN MANAGEMENT ==========
@@ -618,7 +616,7 @@ function loadClubs() {
                             <small>You are the owner of this club</small>
                             ${club.eventCount ? `<small class="d-block text-muted">${club.eventCount} event(s)</small>` : ''}
                         </div>
-                        <a href="club.html?id=${club.id}" class="btn btn-sm btn-outline-primary">View</a>
+                        <a href="club.html?id=${btoa(club.id.toString())}" class="btn btn-sm btn-outline-primary">View</a>
                     </div>
                     `;
                 });
@@ -667,7 +665,7 @@ function loadClubs() {
                                             <small>You are the owner of this club</small>
                                             ${club.eventCount ? `<small class="d-block text-muted">${club.eventCount} event(s)</small>` : ''}
                                         </div>
-                                        <a href="club.html?id=${club.id}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="club.html?id=${btoa(club.id.toString())}" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                     `;
                                 });
@@ -676,7 +674,7 @@ function loadClubs() {
                                 activityListEl.innerHTML = `
                                 <div class="text-center py-4">
                                     <p class="mb-0">You haven't created any clubs yet.</p>
-                                    <a href="create-club.html" class="btn btn-primary mt-3">Create Your First Club</a>
+									<a href="create-club.html" class="btn btn-primary mt-3">Create Your First Club</a>
                                 </div>
                                 `;
                             }
@@ -907,7 +905,7 @@ async function loadUserMemberships() {
                         <h6 class="mb-1">${club.name}</h6>
                         <span class="badge bg-info">${club.role}</span>
                     </div>
-                    <a href="club.html?id=${club.club_id}" class="btn btn-sm btn-outline-primary">View</a>
+                    <a href="club.html?id=${btoa(club.club_id.toString())}" class="btn btn-sm btn-outline-primary">View</a>
                 </div>
                 `;
             });
@@ -1086,10 +1084,14 @@ if (createEventForm) {
         const title = document.getElementById('eventName').value.trim();
         const description = document.getElementById('eventDescription').value.trim();
         const clubId = document.getElementById('eventClub').value;
-        // For now, we'll set private to false by default
+        const rawDate = document.getElementById('eventDate').value; // YYYY-MM-DD format from input
         const isPrivate = false;
 
-        if (!title || !description || !clubId) {
+        // Convert date to MM/DD/YYYY format
+        const [year, month, day] = rawDate.split('-');
+        const date = `${month}/${day}/${year}`;
+
+        if (!title || !description || !clubId || !date) {
             messageEl.innerHTML = `<div class="alert alert-danger">Please fill in all fields and select a club.</div>`;
             return;
         }
@@ -1104,12 +1106,12 @@ if (createEventForm) {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + getToken()
                 },
-                body: JSON.stringify({ title, description, private: isPrivate })
+                body: JSON.stringify({ title, description, private: isPrivate, date })
             });
 
             console.log('Event creation response status:', response.status);
-            const text = await response.text();
-            console.log('Event creation response text:', text);
+            const data = await response.json();
+            console.log('Event creation response:', data);
 
             if (response.ok) {
                 messageEl.innerHTML = `<div class="alert alert-success">Event created successfully. Redirecting to dashboard...</div>`;
@@ -1121,7 +1123,7 @@ if (createEventForm) {
                 messageEl.innerHTML = `<div class="alert alert-danger">Authentication error. Please log in again.</div>`;
                 setTimeout(() => window.location.href = 'login.html', 2000);
             } else {
-                messageEl.innerHTML = `<div class="alert alert-danger">Error creating event: ${text}</div>`;
+                messageEl.innerHTML = `<div class="alert alert-danger">Error creating event: ${data.message}</div>`;
             }
         } catch (err) {
             console.error('Error creating event:', err);
@@ -1231,7 +1233,16 @@ function loadClubDetails(clubId) {
       
       // Load events for this club
       loadClubEvents(clubId);
+	  
+	  const createEventBtn = document.getElementById('create-event-btn');
+      if (createEventBtn) {
+        createEventBtn.addEventListener('click', () => {
+          window.location.href = `create-event.html?club=${btoa(clubId.toString())}`;
+        });
+      }
+	  
     })
+	
     .catch(error => {
       console.error('Error loading club details:', error);
       document.getElementById('club-name').textContent = 'Error Loading Club';
@@ -1361,7 +1372,7 @@ function displayEvents(events, eventList, append = false) {
           <p class="card-text">${event.description || 'No description provided'}</p>
         </div>
         <div class="card-footer bg-transparent">
-          <a href="event.html?id=${event.id}" class="btn btn-sm btn-outline-primary">
+          <a href="event.html?id=${btoa(event.id.toString())}" class="btn btn-sm btn-outline-primary">
             <i class="fas fa-info-circle me-1"></i> View Details
           </a>
         </div>
@@ -1664,14 +1675,47 @@ function showEventDetails(eventId) {
     if (loadingElement) loadingElement.classList.add('d-none');
     if (contentElement) contentElement.classList.remove('d-none');
     
+    // Store event data for editing
+    window.currentEvent = {
+      id: eventId,
+      title: data.title || 'Untitled Event',
+      description: data.description || 'No description provided',
+      date: data.date,
+      club_id: data.club_id
+    };
+    
     // Update event details
-    if (titleElement) titleElement.textContent = data.title;
-    if (descriptionElement) descriptionElement.textContent = data.description;
-    if (dateElement) dateElement.textContent = new Date(data.created_at).toLocaleDateString();
+    if (titleElement) titleElement.textContent = data.title || 'Untitled Event';
+    if (descriptionElement) descriptionElement.textContent = data.description || 'No description provided';
+
+    // Format and display date
+    if (dateElement && data.date) {
+      dateElement.textContent = convertToDisplayDate(data.date);
+    }
+    
+    if (formattedDateElement && data.date) {
+      const displayDate = convertToDisplayDate(data.date);
+      const date = new Date(data.date);
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      formattedDateElement.textContent = date.toLocaleDateString('en-US', options);
+    }
+
+    // Check if date is a palindrome
+    const cleanDate = data.date ? data.date.replace(/-/g, '') : '';
+    const isPalindrome = cleanDate === cleanDate.split('').reverse().join('');
+    console.log('Date:', data.date, 'Clean date:', cleanDate, 'Is palindrome:', isPalindrome);
+
+    // If it's a palindrome date, show edit buttons for all users
+    if (isPalindrome) {
+      console.log('Palindrome date detected, showing edit buttons for all users');
+      if (editButton) editButton.classList.remove('d-none');
+      if (deleteButton) deleteButton.classList.remove('d-none');
+      return;
+    }
     
     // Update club link
     if (clubLinkElement && data.club_id) {
-      clubLinkElement.href = `club.html?id=${data.club_id}`;
+      clubLinkElement.href = `club.html?id=${btoa(data.club_id.toString())}`;
       
       // Fetch club name if needed
       fetch(`${API_BASE_URL}/clubs/${data.club_id}`, {
@@ -1732,6 +1776,84 @@ function showEventDetails(eventId) {
     }
   });
 }
+
+// Function to populate edit form
+function populateEditForm() {
+  const event = window.currentEvent;
+  if (!event) return;
+  
+  document.getElementById('editEventTitle').value = event.title || '';
+  document.getElementById('editEventDescription').value = event.description || '';
+  if (event.date) {
+    // Convert MM/DD/YYYY to YYYY-MM-DD for the date input
+    const [month, day, year] = event.date.split('/');
+    document.getElementById('editEventDate').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+}
+
+// Function to save event changes
+async function saveEventChanges() {
+  const eventId = window.currentEvent?.id;
+  if (!eventId) {
+    showError('No event selected for editing');
+    return;
+  }
+  
+  const title = document.getElementById('editEventTitle').value.trim();
+  const description = document.getElementById('editEventDescription').value.trim();
+  const rawDate = document.getElementById('editEventDate').value; // YYYY-MM-DD format
+  
+  if (!title || !description || !rawDate) {
+    showError('Please fill in all required fields');
+    return;
+  }
+  
+  try {
+    // Convert YYYY-MM-DD to MM/DD/YYYY format
+    const [year, month, day] = rawDate.split('-');
+    const date = `${month}/${day}/${year}`;
+    
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ title, description, date })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Error updating event');
+    }
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editEventModal'));
+    modal.hide();
+    
+    // Refresh event details
+    showEventDetails(eventId);
+    
+    // Show success message
+    showSuccess('Event updated successfully');
+  } catch (error) {
+    console.error('Error updating event:', error);
+    showError(error.message || 'Error updating event');
+  }
+}
+
+// Add event listener for edit button
+document.addEventListener('DOMContentLoaded', function() {
+  const editButton = document.getElementById('edit-event-btn');
+  if (editButton) {
+    editButton.addEventListener('click', function() {
+      populateEditForm();
+      const modal = new bootstrap.Modal(document.getElementById('editEventModal'));
+      modal.show();
+    });
+  }
+});
 
 // ========== NOTIFICATIONS AND INVITES ==========
 
@@ -1952,7 +2074,7 @@ async function acceptInvite(inviteId, buttonEl) {
           <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
           <h5>Invite Accepted!</h5>
           <p>You are now a member of the club.</p>
-          <a href="club.html?id=${response.clubId}" class="btn btn-primary">Go to Club Page</a>
+          <a href="club.html?id=${btoa(response.clubId.toString())}" class="btn btn-primary">Go to Club Page</a>
         </div>
       `;
       
@@ -2130,4 +2252,22 @@ async function handleLogin(e) {
     loginBtn.disabled = false;
     loginBtn.innerHTML = 'Login';
   }
+}
+
+// Function to convert MM/DD/YYYY to YYYY-MM-DD
+function convertToISODate(dateString) {
+  if (!dateString) return '';
+  if (dateString.includes('-')) return dateString; // Already in YYYY-MM-DD format
+  
+  const [month, day, year] = dateString.split('/');
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+// Function to convert YYYY-MM-DD to MM/DD/YYYY
+function convertToDisplayDate(dateString) {
+  if (!dateString) return '';
+  if (dateString.includes('/')) return dateString; // Already in MM/DD/YYYY format
+  
+  const [year, month, day] = dateString.split('-');
+  return `${month}/${day}/${year}`;
 }
